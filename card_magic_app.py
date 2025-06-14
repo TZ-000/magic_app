@@ -736,7 +736,7 @@ if __name__ == "__main__":
 # 푸터
 st.markdown("---")
 col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
+        with col1:
             st.markdown("""
             <div style='text-align: center; padding: 20px;'>
                 <p style='color: #666; margin: 0;'>Made with ❤️ using Streamlit</p>
