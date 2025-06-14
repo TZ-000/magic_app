@@ -733,17 +733,16 @@ if __name__ == "__main__":
     show_data_management()
     show_useful_features()
     
-    # 푸터
-    st.markdown("---")
-    st.markdown(
-        """
-        <div style='text-align: center; color: #666; padding: 20px;'>
-            <p>🎭 Card Collection & Magic Manager v1.0</p>
-            <p>Made with ❤️ using Streamlit</p>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )_pie, use_container_width=True)
+# 푸터
+st.markdown("---")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.markdown("""
+    <div style='text-align: center; padding: 20px;'>
+        <p style='color: #666; margin: 0;'>Made with ❤️ using Streamlit</p>
+        <p style='color: #888; font-size: 12px; margin: 5px 0;'>카드 마술의 신비로운 세계를 탐험하세요</p>
+    </div>
+    """, unsafe_allow_html=True)
         
         with col2:
             # 가격 상승률 분포
