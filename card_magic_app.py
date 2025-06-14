@@ -743,7 +743,7 @@ if __name__ == "__main__":
         </div>
         """, 
         unsafe_allow_html=True
-    )_pie, use_container_width=True
+    )_pie, use_container_width=True)
         
         with col2:
             # 가격 상승률 분포
