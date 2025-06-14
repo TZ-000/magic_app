@@ -732,29 +732,3 @@ if __name__ == "__main__":
     main()
     show_data_management()
     show_useful_features()
-    
-# 푸터
-st.markdown("---")
-col1, col2, col3 = st.columns([1, 2, 1])
-        with col1:
-            st.markdown("""
-            <div style='text-align: center; padding: 20px;'>
-                <p style='color: #666; margin: 0;'>Made with ❤️ using Streamlit</p>
-                <p style='color: #888; font-size: 12px; margin: 5px 0;'>카드 마술의 신비로운 세계를 탐험하세요</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            # 가격 상승률 분포
-            st.subheader("📈 가격 상승률 분포")
-            fig_hist = px.histogram(df_cards, x='상승률(%)', nbins=20,
-                                  title="가격 상승률 히스토그램")
-            st.plotly_chart(fig_hist, use_container_width=True)
-        
-        # 가격 대비 별점 산점도
-        st.subheader("💰 가격 대비 디자인 별점")
-        fig_scatter = px.scatter(df_cards, x='현재가격($)', y='디자인별점', 
-                               color='제조사', size='상승률(%)',
-                               hover_data=['카드명'],
-                               title="현재가격 vs 디자인별점")
-        st.plotly_chart(fig
