@@ -548,134 +548,125 @@ def show_magic_tricks():
         st.info("📝 아직 등록된 마술이 없습니다. 새 마술을 추가해보세요!")
 
 def show_analytics():
-    """성과 분석 페이지를 표시합니다."""
-    st.header("📈 성과 분석")
+    st.markdown('<h2 class="section-header">📊 Analytics & Insights</h2>', unsafe_allow_html=True)
     
-    if not st.session_state.performance_history:
-        st.info("아직 플레이 기록이 없습니다. 마술을 연습해보세요!")
-        return
-    
-    # 데이터 준비
-    df = pd.DataFrame(st.session_state.performance_history)
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    
-    # 기본 통계
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        avg_score = df['score'].mean()
-        st.metric("평균 점수", f"{avg_score:.1f}점")
-    
-    with col2:
-        max_score = df['score'].max()
-        st.metric("최고 점수", f"{max_score:.1f}점")
-    
-    with col3:
-        total_games = len(df)
-        st.metric("총 게임 수", f"{total_games}게임")
-    
-    with col4:
-        success_rate = (df['score'] >= 80).mean() * 100
-        st.metric("성공률 (80점 이상)", f"{success_rate:.1f}%")
-    
-    # 시간대별 점수 추이
-    st.subheader("📊 점수 추이")
-    if len(df) > 1:
-        fig_line = px.line(
-            df, 
-            x='timestamp', 
-            y='score',
-            title='시간별 점수 변화',
-            markers=True
-        )
-        fig_line.update_layout(
-            xaxis_title="시간",
-            yaxis_title="점수",
-            hovermode='x unified',
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_line, use_container_width=True)
-    else:
-        st.info("점수 추이를 보려면 더 많은 게임이 필요합니다.")
-    
-    # 마술별 성과 분석
-    st.subheader("🎭 마술별 성과")
-    
-    if len(df) > 0:
-        trick_stats = df.groupby('trick').agg({
-            'score': ['mean', 'count', 'max'],
-            'attempts': 'mean'
-        }).round(2)
-        
-        # 컬럼명 정리
-        trick_stats.columns = ['평균점수', '플레이횟수', '최고점수', '평균시도횟수']
-        trick_stats = trick_stats.reset_index()
+    # 카드 컬렉션 분석
+    if not st.session_state.card_collection.empty:
+        df_cards = st.session_state.card_collection.copy()
+        df_cards['상승률(%)'] = ((df_cards['현재가격($)'] - df_cards['구매가격($)']) / df_cards['구매가격($)'] * 100)
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # 마술별 평균 점수 막대 차트
-            fig_bar = px.bar(
-                trick_stats,
-                x='trick',
-                y='평균점수',
-                title='마술별 평균 점수',
-                color='평균점수',
-                color_continuous_scale='RdYlGn'
-            )
-            fig_bar.update_layout(
-                xaxis_title="마술 종류",
-                yaxis_title="평균 점수",
-                showlegend=False,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
+            # 제조사별 카드 분포
+            st.subheader("🏭 제조사별 카드 분포")
+            manufacturer_counts = df_cards['제조사'].value_counts()
+            fig_pie = px.pie(values=manufacturer_counts.values, names=manufacturer_counts.index,
+                           title="제조사별 카드 분포")
+            st.plotly_chart(fig_scatter, use_container_width=True)
+        
+        # 투자 성과 분석
+        st.subheader("💹 투자 성과 분석")
+        total_invested = df_cards['구매가격($)'].sum()
+        total_current = df_cards['현재가격($)'].sum()
+        total_gain = total_current - total_invested
+        total_gain_pct = (total_gain / total_invested * 100) if total_invested > 0 else 0
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("총 투자금액", f"${total_invested:.2f}", f"₩{usd_to_krw(total_invested):,.0f}")
+        with col2:
+            st.metric("현재 총 가치", f"${total_current:.2f}", f"₩{usd_to_krw(total_current):,.0f}")
+        with col3:
+            st.metric("총 수익률", f"{total_gain_pct:.2f}%", f"${total_gain:.2f}")
+        
+        # 상위/하위 수익률 카드
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("🔥 Top 수익률 카드")
+            top_gainers = df_cards.nlargest(5, '상승률(%)')
+            for _, row in top_gainers.iterrows():
+                st.write(f"🃏 **{row['카드명']}**: +{row['상승률(%)']:.2f}%")
         
         with col2:
-            # 마술별 플레이 횟수 파이 차트
-            fig_pie = px.pie(
-                trick_stats,
-                values='플레이횟수',
-                names='trick',
-                title='마술별 플레이 비율'
-            )
-            fig_pie.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
-        
-        # 상세 통계 테이블
-        st.subheader("📋 상세 통계")
-        st.dataframe(trick_stats, use_container_width=True)
+            st.subheader("❄️ 손실 카드")
+            losers = df_cards[df_cards['상승률(%)'] < 0].nsmallest(5, '상승률(%)')
+            if not losers.empty:
+                for _, row in losers.iterrows():
+                    st.write(f"🃏 **{row['카드명']}**: {row['상승률(%)']:.2f}%")
+            else:
+                st.write("🎉 손실을 본 카드가 없습니다!")
     
-    # 성과 히스토리
-    st.subheader("🎯 최근 게임 기록")
-    recent_df = df.tail(10).copy()
-    recent_df['timestamp'] = recent_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M')
-    recent_df = recent_df.rename(columns={
-        'timestamp': '날짜/시간',
-        'trick': '마술',
-        'score': '점수',
-        'attempts': '시도횟수'
-    })
-    st.dataframe(recent_df, use_container_width=True)
-    
-    # 학습 추천
-    st.subheader("💡 학습 추천")
-    if len(df) >= 5:
-        # 가장 낮은 점수의 마술 찾기
-        lowest_trick = df.groupby('trick')['score'].mean().idxmin()
-        lowest_score = df.groupby('trick')['score'].mean().min()
-        
-        if lowest_score < 70:
-            st.warning(f"**{lowest_trick}** 마술의 평균 점수가 {lowest_score:.1f}점으로 낮습니다. 더 연습해보세요!")
-        else:
-            st.success("모든 마술에서 좋은 성과를 보이고 있습니다! 👏")
     else:
-        st.info("더 많은 게임을 플레이하면 개인화된 학습 추천을 받을 수 있습니다.")
+        st.info("📊 카드 컬렉션 데이터가 없어서 분석을 표시할 수 없습니다.")
+    
+    # 마술 분석
+    if not st.session_state.magic_list.empty:
+        st.markdown("---")
+        st.subheader("🎭 마술 분석")
+        
+        df_magic = st.session_state.magic_list.copy()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 장르별 마술 분포
+            st.subheader("🎪 장르별 마술 분포")
+            genre_counts = df_magic['장르'].value_counts()
+            fig_magic_pie = px.pie(values=genre_counts.values, names=genre_counts.index,
+                                 title="장르별 마술 분포")
+            st.plotly_chart(fig_magic_pie, use_container_width=True)
+        
+        with col2:
+            # 신기함 정도 분포
+            st.subheader("⭐ 신기함 정도 분포")
+            fig_magic_hist = px.histogram(df_magic, x='신기함정도', nbins=10,
+                                        title="신기함 정도 히스토그램")
+            st.plotly_chart(fig_magic_hist, use_container_width=True)
+        
+        # 높은 평점 마술 TOP 10
+        st.subheader("🌟 높은 평점 마술 TOP 10")
+        top_magic = df_magic.nlargest(10, '신기함정도')
+        for i, (_, row) in enumerate(top_magic.iterrows(), 1):
+            st.write(f"{i}. **{row['마술명']}** ({row['장르']}) - {display_stars(row['신기함정도'])}")
+    
+    # 위시리스트 분석
+    if not st.session_state.wishlist.empty:
+        st.markdown("---")
+        st.subheader("💫 위시리스트 분석")
+        
+        df_wish = st.session_state.wishlist.copy()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 우선순위별 분포
+            st.subheader("📊 우선순위별 분포")
+            priority_counts = df_wish['우선순위'].value_counts().sort_index()
+            fig_priority = px.bar(x=priority_counts.index, y=priority_counts.values,
+                                title="우선순위별 위시리스트 분포",
+                                labels={'x': '우선순위', 'y': '개수'})
+            st.plotly_chart(fig_priority, use_container_width=True)
+        
+        with col2:
+            # 가격 분포
+            st.subheader("💰 가격 분포")
+            fig_price_dist = px.histogram(df_wish, x='가격($)', nbins=15,
+                                        title="위시리스트 가격 분포")
+            st.plotly_chart(fig_price_dist, use_container_width=True)
+        
+        # 총 위시리스트 가치
+        total_wishlist_value = df_wish['가격($)'].sum()
+        st.metric("총 위시리스트 가치", f"${total_wishlist_value:.2f}", f"₩{usd_to_krw(total_wishlist_value):,.0f}")
+        
+        # 높은 우선순위 위시리스트
+        st.subheader("🎯 높은 우선순위 위시리스트")
+        high_priority = df_wish[df_wish['우선순위'] >= 4.0].sort_values('우선순위', ascending=False)
+        if not high_priority.empty:
+            for _, row in high_priority.iterrows():
+                st.write(f"🃏 **{row['카드명']}** - {display_stars(row['우선순위'])} (${row['가격($)']})")
+        else:
+            st.write("높은 우선순위(4점 이상) 위시리스트가 없습니다.")
 
 # 데이터 내보내기/가져오기 기능
 def show_data_management():
