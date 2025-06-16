@@ -575,30 +575,30 @@ def show_card_collection():
                    unsafe_allow_html=True)
         
         # 편집 및 삭제 기능
-                st.markdown("### ✏️ Edit & Delete")
-                if not df.empty:
-                    selected_card = st.selectbox("편집할 카드 선택", df['카드명'].tolist())
-                    col1, col2 = st.columns(2)
+        st.markdown("### ✏️ Edit & Delete")
+        if not df.empty:
+            selected_card = st.selectbox("편집할 카드 선택", df['카드명'].tolist())
+            col1, col2 = st.columns(2)
                     
-                    with col1:
-                        if st.button("🗑️ 선택한 카드 삭제", type="secondary"):
-                            st.session_state.card_collection = st.session_state.card_collection[
-                                st.session_state.card_collection['카드명'] != selected_card
-                            ]
-                            st.success(f"✅ '{selected_card}' 카드가 삭제되었습니다!")
-                            st.rerun()
+            with col1:
+                if st.button("🗑️ 선택한 카드 삭제", type="secondary"):
+                    st.session_state.card_collection = st.session_state.card_collection[
+                        st.session_state.card_collection['카드명'] != selected_card
+                    ]
+                    st.success(f"✅ '{selected_card}' 카드가 삭제되었습니다!")
+                    st.rerun()
                     
-                    with col2:
-                        if st.button("🔄 전체 데이터 초기화"):
-                            st.warning("⚠️ 이 작업은 되돌릴 수 없습니다!")
-                            confirm = st.checkbox("정말로 모든 카드 데이터를 삭제하시겠습니까?")
-                            if confirm and st.button("⚠️ 확인 - 전체 삭제"):
-                                st.session_state.card_collection = pd.DataFrame(columns=[
-                                    '카드명', '구매가격($)', '현재가격($)', '제조사', '단종여부', '개봉여부',
-                                    '판매사이트', '디자인별점', '피니시', '디자인스타일'
-                                ])
-                                st.success("✅ 모든 카드 데이터가 초기화되었습니다!")
-                                st.rerun()
+            with col2:
+                if st.button("🔄 전체 데이터 초기화"):
+                    st.warning("⚠️ 이 작업은 되돌릴 수 없습니다!")
+                    confirm = st.checkbox("정말로 모든 카드 데이터를 삭제하시겠습니까?")
+                    if confirm and st.button("⚠️ 확인 - 전체 삭제"):
+                        st.session_state.card_collection = pd.DataFrame(columns=[
+                            '카드명', '구매가격($)', '현재가격($)', '제조사', '단종여부', '개봉여부',
+                            '판매사이트', '디자인별점', '피니시', '디자인스타일'
+                        ])
+                        st.success("✅ 모든 카드 데이터가 초기화되었습니다!")
+                        st.rerun()
         
         # 데이터 내보내기/가져오기
         st.markdown("### 📤 Import/Export")
