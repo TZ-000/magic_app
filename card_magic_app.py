@@ -303,10 +303,9 @@ def main():
     # 메인 헤더
     st.markdown('<h1 class="main-header">🎭 Card Collection & Magic Manager</h1>', unsafe_allow_html=True)
     
-    # 사이드바 네비게이션
-    st.sidebar.title("📋 Navigation")
-    page = st.sidebar.selectbox(
-        "페이지 선택",
+    # 메인 화면 네비게이션 (탭 방식)
+    page = st.selectbox(
+        "📋 페이지 선택",
         ["🏠 Dashboard", "🃏 Card Collection", "💫 Wishlist", "🎩 Magic Tricks"]
     )
     
