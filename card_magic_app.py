@@ -695,12 +695,13 @@ def show_card_collection():
             if total_purchase > 0:
                 roi = ((total_current - total_purchase) / total_purchase) * 100
                 st.metric("수익률", f"{roi:.1f}%", delta=f"{roi:.1f}%")
-        
+     st.markdown("---")  # 카드 간 구분선   
+
         # 카드 목록 표시 (개선된 버전)
         for idx, row in df.iterrows():
             # 전체 카드를 감싸는 컨테이너
             # 컬럼 생성
-            col1, col2, col3, col4, col5 = st.columns([5, 3, 3, 3, 1])
+            col1, col2, col3, col4, col5 = st.columns([2, 3, 3, 3, 1])
             with col1:
                 status_icon = get_status_icon(row['개봉여부'])
                 st.markdown(f"**{status_icon} {row['카드명']}**")
