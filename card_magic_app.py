@@ -708,8 +708,6 @@ def show_card_collection():
         
         col1, col2 = st.columns(2)
     # ... 기존 삭제 코드 유지 ...
-        col1, col2 = st.columns(2)
-                    
             with col1:
                 if st.button("🗑️ 선택한 카드 삭제", type="secondary"):
                     st.session_state.card_collection = st.session_state.card_collection[
@@ -730,6 +728,7 @@ def show_card_collection():
                         ])
                         st.success("✅ 모든 카드 데이터가 초기화되었습니다!")
                         st.rerun()
+                
         
         # 데이터 내보내기/가져오기
         st.markdown("### 📤 Import/Export")
