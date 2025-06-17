@@ -5,6 +5,56 @@ import json
 from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
+import pickle
+import os
+
+# 데이터 파일 경로
+DATA_FILE = "card_magic_data.pkl"
+
+# 데이터 저장 함수
+def save_data():
+    """모든 세션 데이터를 파일에 저장"""
+    data = {
+        'card_collection': st.session_state.card_collection,
+        'wishlist': st.session_state.wishlist,
+        'magic_list': st.session_state.magic_list,
+        'manufacturers': st.session_state.manufacturers,
+        'magic_genres': st.session_state.magic_genres
+    }
+    with open(DATA_FILE, 'wb') as f:
+        pickle.dump(data, f)
+
+# 데이터 로드 함수
+def load_data():
+    """파일에서 데이터를 불러와서 세션 상태에 설정"""
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'rb') as f:
+                data = pickle.load(f)
+            
+            st.session_state.card_collection = data.get('card_collection', pd.DataFrame(columns=[
+                '카드명', '구매가격($)', '현재가격($)', '제조사', '단종여부', '개봉여부',
+                '판매사이트', '디자인별점', '피니시', '디자인스타일'
+            ]))
+            st.session_state.wishlist = data.get('wishlist', pd.DataFrame(columns=[
+                '이름', '타입', '가격($)', '판매사이트', '우선순위', '비고'
+            ]))
+            st.session_state.magic_list = data.get('magic_list', pd.DataFrame(columns=[
+                '마술명', '장르', '신기함정도', '난이도', '관련영상', '비고'
+            ]))
+            st.session_state.manufacturers = data.get('manufacturers', [
+                "Bicycle", "Theory11", "Ellusionist", "D&D", "Fontaine", 
+                "Art of Play", "Kings Wild Project", "USPCC", "Cartamundi"
+            ])
+            st.session_state.magic_genres = data.get('magic_genres', [
+                "카드-세팅", "카드-즉석", "동전", "멘탈리즘", "클로즈업-세팅", 
+                "클로즈업-즉석", "일상 즉석", "스테이지", "레스토레이션"
+            ])
+            return True
+        except Exception as e:
+            st.error(f"데이터 로드 중 오류 발생: {str(e)}")
+            return False
+    return False
 
 # 페이지 설정
 st.set_page_config(
@@ -189,6 +239,11 @@ def display_difficulty_bar(difficulty):
 
 # 세션 상태 초기화
 def initialize_session_state():
+    # 먼저 파일에서 데이터 로드 시도
+    if load_data():
+        return  # 데이터 로드 성공하면 초기화 건너뛰기
+    
+    # 파일이 없거나 로드 실패 시 기본값으로 초기화
     if 'card_collection' not in st.session_state:
         st.session_state.card_collection = pd.DataFrame(columns=[
             '카드명', '구매가격($)', '현재가격($)', '제조사', '단종여부', '개봉여부',
@@ -205,14 +260,12 @@ def initialize_session_state():
             '마술명', '장르', '신기함정도', '난이도', '관련영상', '비고'
         ])
     
-    # 제조사 목록 초기화 (기본값 + 사용자 추가)
     if 'manufacturers' not in st.session_state:
         st.session_state.manufacturers = [
             "Bicycle", "Theory11", "Ellusionist", "D&D", "Fontaine", 
             "Art of Play", "Kings Wild Project", "USPCC", "Cartamundi"
         ]
     
-    # 마술 장르 목록 초기화
     if 'magic_genres' not in st.session_state:
         st.session_state.magic_genres = [
             "카드-세팅", "카드-즉석", "동전", "멘탈리즘", "클로즈업-세팅", 
@@ -279,6 +332,7 @@ def add_magic():
         '관련영상': st.session_state.new_magic_video,
         '비고': st.session_state.new_magic_note
     }
+    save_data()
     
     # 새 장르 추가
     if st.session_state.genre_option == "새로 추가":
@@ -585,6 +639,7 @@ def show_card_collection():
                     st.session_state.card_collection = st.session_state.card_collection[
                         st.session_state.card_collection['카드명'] != selected_card
                     ]
+                    save_data()
                     st.success(f"✅ '{selected_card}' 카드가 삭제되었습니다!")
                     st.rerun()
                     
@@ -698,6 +753,7 @@ def show_wishlist():
             st.session_state.wishlist = st.session_state.wishlist[
                 st.session_state.wishlist['이름'] != selected_wish
             ]
+            save_data()
             st.success(f"✅ '{selected_wish}' 위시리스트가 삭제되었습니다!")
             st.rerun()
     
@@ -803,6 +859,7 @@ def show_magic_tricks():
             st.session_state.magic_list = st.session_state.magic_list[
                 st.session_state.magic_list['마술명'] != selected_magic
             ]
+            save_data()
             st.success(f"✅ '{selected_magic}' 마술이 삭제되었습니다!")
             st.rerun()
     
