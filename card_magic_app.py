@@ -118,17 +118,69 @@ st.markdown("""
     
     .card-container {
         background-color: #ffffff;
-        position: relative;
         border: 1px solid #e1e8ed;
         border-radius: 10px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: box-shadow 0.3s ease;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     
     .card-container:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .card-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Streamlit 컬럼 스타일링 */
+    .card-container .row-widget {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .card-container [data-testid="column"] {
+        background: transparent !important;
+        padding: 0.5rem !important;
+        border-radius: 8px;
+        margin: 0.2rem 0;
+    }
+    
+    .card-container [data-testid="column"]:nth-child(1) {
+        border-left: 3px solid #3498db;
+        background-color: #f8f9fa !important;
+    }
+    
+    .card-container [data-testid="column"]:nth-child(2) {
+        border-left: 3px solid #27ae60;
+        background-color: #f0fff4 !important;
+    }
+    
+    .card-container [data-testid="column"]:nth-child(3) {
+        border-left: 3px solid #f39c12;
+        background-color: #fffbf0 !important;
+    }
+    
+    .card-container [data-testid="column"]:nth-child(4) {
+        border-left: 3px solid #9b59b6;
+        background-color: #f8f4ff !important;
+    }
+    
+    .card-container [data-testid="column"]:nth-child(5) {
+        border-left: 3px solid #e74c3c;
+        background-color: #fff0f0 !important;
+        text-align: center;
     }
     
     .filter-section {
@@ -175,17 +227,41 @@ st.markdown("""
         padding: 0.5rem 1rem;
         font-weight: bold;
         transition: all 0.3s ease;
+        width: 100%;
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
     
     .main .block-container {
         max-width: 1400px;
         padding-left: 2rem;
         padding-right: 2rem;
+    }
+    
+    /* 카드 내부 텍스트 스타일링 */
+    .card-container h3, .card-container h4 {
+        margin-top: 0;
+        color: #2c3e50;
+    }
+    
+    .card-container .caption {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    /* 삭제 버튼 특별 스타일링 */
+    .card-container .stButton:last-child > button {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        min-height: 2.5rem;
+        font-size: 1.2rem;
+    }
+    
+    .card-container .stButton:last-child > button:hover {
+        background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -643,43 +719,52 @@ def show_card_collection():
                 roi = ((total_current - total_purchase) / total_purchase) * 100
                 st.metric("수익률", f"{roi:.1f}%", delta=f"{roi:.1f}%")
         
-        # 카드 목록 표시
+        # 카드 목록 표시 (개선된 버전)
         for idx, row in df.iterrows():
-            with st.container():
-                st.markdown('<div class="card-container">', unsafe_allow_html=True)
-                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+            # 전체 카드를 감싸는 컨테이너
+            st.markdown('<div class="card-container">', unsafe_allow_html=True)
+            
+            # 컬럼 생성
+            col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+            
+            with col1:
+                st.markdown("### 📋 카드 정보")
+                status_icon = get_status_icon(row['개봉여부'])
+                st.markdown(f"**{status_icon} {row['카드명']}**")
+                st.caption(f"🏭 {row['제조사']} | {row['피니시']} | {row['디자인스타일']}")
+            
+            with col2:
+                st.markdown("### 💰 가격 정보")
+                st.write(f"**구매:** ${row['구매가격($)']:.2f}")
+                st.write(f"**현재:** ${row['현재가격($)']:.2f}")
+                profit = row['현재가격($)'] - row['구매가격($)']
+                profit_color = "🟢" if profit >= 0 else "🔴"
+                st.write(f"**손익:** {profit_color} ${profit:.2f}")
+            
+            with col3:
+                st.markdown("### ⭐ 평가 정보")
+                stars = display_stars(row['디자인별점'])
+                st.write(f"**별점:** {stars}")
+                discontinued_icon = "❌" if row['단종여부'] == "단종" else "✅"
+                st.write(f"**판매상태:** {discontinued_icon} {row['단종여부']}")
+            
+            with col4:
+                st.markdown("### 🔗 구매 링크")
+                if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
+                    st.markdown(f"[🛒 구매하기]({row['판매사이트']})")
+                else:
+                    st.write("링크 없음")
+            
+            with col5:
+                st.markdown("### 🛠️ 관리")
+                if st.button("🗑️ 삭제", key=f"delete_card_{idx}", help="카드 삭제"):
+                    st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
+                    save_data()
+                    st.rerun()
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("---")  # 카드 간 구분선
                 
-                with col1:
-                    status_icon = get_status_icon(row['개봉여부'])
-                    st.markdown(f"**{status_icon} {row['카드명']}**")
-                    st.caption(f"🏭 {row['제조사']} | {row['피니시']} | {row['디자인스타일']}")
-                
-                with col2:
-                    st.write(f"**구매:** ${row['구매가격($)']:.2f}")
-                    st.write(f"**현재:** ${row['현재가격($)']:.2f}")
-                    profit = row['현재가격($)'] - row['구매가격($)']
-                    profit_color = "🟢" if profit >= 0 else "🔴"
-                    st.write(f"**손익:** {profit_color} ${profit:.2f}")
-                
-                with col3:
-                    stars = display_stars(row['디자인별점'])
-                    st.write(f"**별점:** {stars}")
-                    discontinued_icon = "❌" if row['단종여부'] == "단종" else "✅"
-                    st.write(f"**판매상태:** {discontinued_icon} {row['단종여부']}")
-                
-                with col4:
-                    if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
-                        st.markdown(f"[🔗 구매링크]({row['판매사이트']})")
-                    else:
-                        st.write("링크 없음")
-                
-                with col5:
-                    if st.button("🗑️", key=f"delete_card_{idx}", help="카드 삭제"):
-                        st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
-                        save_data()
-                        st.rerun()
-                
-                st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info("🃏 표시할 카드가 없습니다. 필터를 조정하거나 새 카드를 추가해보세요!")
 
