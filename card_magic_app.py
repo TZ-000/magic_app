@@ -142,8 +142,8 @@ st.markdown("""
         height: 4px;
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
     }
-    
-    /* Streamlit 컬럼 스타일링 */
+
+        /* Streamlit 컬럼 스타일링 */
     .card-container .row-widget {
         background: transparent !important;
         padding: 0 !important;
@@ -227,13 +227,11 @@ st.markdown("""
         padding: 0.5rem 1rem;
         font-weight: bold;
         transition: all 0.3s ease;
-        width: 100%;
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
     
     .main .block-container {
@@ -241,30 +239,9 @@ st.markdown("""
         padding-left: 2rem;
         padding-right: 2rem;
     }
-    
-    /* 카드 내부 텍스트 스타일링 */
-    .card-container h3, .card-container h4 {
-        margin-top: 0;
-        color: #2c3e50;
-    }
-    
-    .card-container .caption {
-        color: #7f8c8d;
-        font-size: 0.9rem;
-    }
-    
-    /* 삭제 버튼 특별 스타일링 */
-    .card-container .stButton:last-child > button {
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        min-height: 2.5rem;
-        font-size: 1.2rem;
-    }
-    
-    .card-container .stButton:last-child > button:hover {
-        background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
-    }
 </style>
 """, unsafe_allow_html=True)
+
 
 # 환율 정보 가져오기 함수
 @st.cache_data(ttl=3600)
