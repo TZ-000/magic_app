@@ -118,6 +118,7 @@ st.markdown("""
     
     .card-container {
         background-color: #ffffff;
+        position: relative;
         border: 1px solid #e1e8ed;
         border-radius: 10px;
         padding: 1rem;
