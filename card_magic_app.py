@@ -770,8 +770,6 @@ def show_card_collection():
                 st.write(f"**구매:** ${row['구매가격($)']:.2f}")
                 st.write(f"**현재:** ${row['현재가격($)']:.2f}")
                 profit = row['현재가격($)'] - row['구매가격($)']
-                profit_color = "🟢" if profit >= 0 else "🔴"
-                st.write(f"**손익:** {profit_color} ${profit:.2f}")
             
             with col3:
                 stars = display_stars(row['디자인별점'])
