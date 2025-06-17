@@ -700,7 +700,7 @@ def show_card_collection():
         for idx, row in df.iterrows():
             # 전체 카드를 감싸는 컨테이너
             # 컬럼 생성
-            col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+            col1, col2, col3, col4, col5 = st.columns([5, 3, 3, 3, 1])
             with col1:
                 status_icon = get_status_icon(row['개봉여부'])
                 st.markdown(f"**{status_icon} {row['카드명']}**")
@@ -730,8 +730,6 @@ def show_card_collection():
                     st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
                     save_data()
                     st.rerun()
-            
-            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("---")  # 카드 간 구분선
                 
     else:
