@@ -588,7 +588,6 @@ def show_card_collection():
     # 필터링 및 검색 섹션
     st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
     with st.container():
-        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
