@@ -812,6 +812,19 @@ def show_card_collection():
 def show_wishlist():
     st.markdown('<h2 class="section-header">💫 Wishlist Management</h2>', unsafe_allow_html=True)
     
+    # 사이드바 필터링 및 검색 섹션
+    with st.sidebar:
+        st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
+        
+        wish_search = st.text_input("🔎 아이템명 검색", key="wish_search")
+        type_filter = st.selectbox("타입 필터", ["전체", "카드", "마술용품", "책", "DVD", "기타"])
+        priority_filter = st.selectbox("우선순위 필터", ["전체", "높음(4+)", "중간(2-4)", "낮음(~2)"])
+        
+        # 페이지네이션 설정
+        st.markdown("---")
+        st.markdown("**📄 페이지 설정**")
+        wish_items_per_page = st.selectbox("페이지당 아이템 수", [5, 10, 15, 20], index=1, key="wish_items_per_page")
+    
     # 위시리스트 아이템 추가 섹션
     st.markdown('<h3 class="sub-section-header">➕ 새 아이템 추가</h3>', unsafe_allow_html=True)
     with st.expander("위시리스트 아이템 입력", expanded=False):
@@ -831,25 +844,12 @@ def show_wishlist():
             if st.session_state.new_wish_name:
                 add_card_to_wishlist()
                 st.success("✅ 위시리스트에 성공적으로 추가되었습니다!")
+                # 페이지 초기화
+                if 'current_wish_page' in st.session_state:
+                    st.session_state.current_wish_page = 1
                 st.rerun()
             else:
                 st.error("❌ 아이템명을 입력해주세요!")
-    
-    # 위시리스트 필터링
-    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
-    with st.container():
-        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            wish_search = st.text_input("🔎 아이템명 검색", key="wish_search")
-        
-        with col2:
-            type_filter = st.selectbox("타입 필터", ["전체", "카드", "마술용품", "책", "DVD", "기타"])
-        
-        with col3:
-            priority_filter = st.selectbox("우선순위 필터", ["전체", "높음(4+)", "중간(2-4)", "낮음(~2)"])
-        st.markdown('</div>', unsafe_allow_html=True)
     
     # 위시리스트 데이터 필터링
     wish_df = st.session_state.wishlist.copy()
@@ -891,12 +891,71 @@ def show_wishlist():
         with col4:
             high_priority_count = len(wish_df[wish_df['우선순위'] >= 4.0])
             st.metric("높은 우선순위", f"{high_priority_count}개")
-        st.markdown("---")  # 카드 간 구분선
+        
+        # 페이지네이션 계산
+        total_items = len(wish_df)
+        total_pages = (total_items - 1) // wish_items_per_page + 1 if total_items > 0 else 1
+        
+        # 현재 페이지 상태 관리
+        if 'current_wish_page' not in st.session_state:
+            st.session_state.current_wish_page = 1
+        
+        # 페이지 범위 조정
+        if st.session_state.current_wish_page > total_pages:
+            st.session_state.current_wish_page = total_pages
+        
+        # 페이지네이션 컨트롤
+        if total_items > wish_items_per_page:
+            st.markdown("---")
+            col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+            
+            with col1:
+                if st.button("⏮️ 첫 페이지", disabled=(st.session_state.current_wish_page == 1), key="wish_first"):
+                    st.session_state.current_wish_page = 1
+                    st.rerun()
+            
+            with col2:
+                if st.button("◀️ 이전", disabled=(st.session_state.current_wish_page == 1), key="wish_prev"):
+                    st.session_state.current_wish_page -= 1
+                    st.rerun()
+            
+            with col3:
+                page_options = list(range(1, total_pages + 1))
+                selected_page = st.selectbox(
+                    f"페이지 {st.session_state.current_wish_page} / {total_pages}",
+                    page_options,
+                    index=st.session_state.current_wish_page - 1,
+                    key="wish_page_selector"
+                )
+                if selected_page != st.session_state.current_wish_page:
+                    st.session_state.current_wish_page = selected_page
+                    st.rerun()
+            
+            with col4:
+                if st.button("▶️ 다음", disabled=(st.session_state.current_wish_page == total_pages), key="wish_next"):
+                    st.session_state.current_wish_page += 1
+                    st.rerun()
+            
+            with col5:
+                if st.button("⏭️ 마지막 페이지", disabled=(st.session_state.current_wish_page == total_pages), key="wish_last"):
+                    st.session_state.current_wish_page = total_pages
+                    st.rerun()
+            
+            # 현재 페이지 정보 표시
+            start_idx = (st.session_state.current_wish_page - 1) * wish_items_per_page + 1
+            end_idx = min(st.session_state.current_wish_page * wish_items_per_page, total_items)
+            st.info(f"📄 {start_idx}-{end_idx} / {total_items} 아이템 표시 중")
+        
+        st.markdown("---")
+        
+        # 현재 페이지에 해당하는 아이템만 추출
+        start_idx = (st.session_state.current_wish_page - 1) * wish_items_per_page
+        end_idx = start_idx + wish_items_per_page
+        page_wish_df = wish_df.iloc[start_idx:end_idx]
         
         # 위시리스트 아이템 표시
-        for idx, row in wish_df.iterrows():
+        for idx, row in page_wish_df.iterrows():
             with st.container():
-                st.markdown('<div class="card-container">', unsafe_allow_html=True)
                 col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
                 
                 with col1:
@@ -928,14 +987,44 @@ def show_wishlist():
                     if st.button("🗑️", key=f"delete_wish_{idx}", help="아이템 삭제"):
                         st.session_state.wishlist = st.session_state.wishlist.drop(idx).reset_index(drop=True)
                         save_data()
+                        
+                        # 삭제 후 페이지 조정
+                        remaining_items = len(st.session_state.wishlist)
+                        new_total_pages = (remaining_items - 1) // wish_items_per_page + 1 if remaining_items > 0 else 1
+                        if st.session_state.current_wish_page > new_total_pages:
+                            st.session_state.current_wish_page = new_total_pages
+                        
                         st.rerun()
                 
-                st.markdown("---")  # 카드 간 구분선
+                st.markdown("---")
+        
+        # 페이지 하단 정보
+        if total_items > wish_items_per_page:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.markdown(f"<div style='text-align: center;'>페이지 {st.session_state.current_wish_page} / {total_pages}</div>", 
+                           unsafe_allow_html=True)
+                
     else:
         st.info("💫 표시할 위시리스트 아이템이 없습니다. 필터를 조정하거나 새 아이템을 추가해보세요!")
 
+
 def show_magic_tricks():
     st.markdown('<h2 class="section-header">🎩 Magic Tricks Management</h2>', unsafe_allow_html=True)
+    
+    # 사이드바 필터링 및 검색 섹션
+    with st.sidebar:
+        st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
+        
+        magic_search = st.text_input("🔎 마술명 검색", key="magic_search")
+        genre_filter = st.selectbox("장르 필터", ["전체"] + st.session_state.magic_genres)
+        difficulty_filter = st.selectbox("난이도 필터", ["전체", "쉬움(~2)", "보통(2-4)", "어려움(4+)"])
+        rating_filter = st.selectbox("신기함 필터", ["전체", "낮음(~2)", "보통(2-4)", "높음(4+)"])
+        
+        # 페이지네이션 설정
+        st.markdown("---")
+        st.markdown("**📄 페이지 설정**")
+        magic_items_per_page = st.selectbox("페이지당 마술 수", [5, 10, 15, 20], index=1, key="magic_items_per_page")
     
     # 마술 추가 섹션
     st.markdown('<h3 class="sub-section-header">➕ 새 마술 추가</h3>', unsafe_allow_html=True)
@@ -963,27 +1052,12 @@ def show_magic_tricks():
             if st.session_state.new_magic_name:
                 add_magic()
                 st.success("✅ 마술이 성공적으로 추가되었습니다!")
+                # 페이지 초기화
+                if 'current_magic_page' in st.session_state:
+                    st.session_state.current_magic_page = 1
                 st.rerun()
             else:
                 st.error("❌ 마술명을 입력해주세요!")
-    
-    # 마술 필터링
-    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            magic_search = st.text_input("🔎 마술명 검색", key="magic_search")
-        
-        with col2:
-            genre_filter = st.selectbox("장르 필터", ["전체"] + st.session_state.magic_genres)
-        
-        with col3:
-            difficulty_filter = st.selectbox("난이도 필터", ["전체", "쉬움(~2)", "보통(2-4)", "어려움(4+)"])
-        
-        with col4:
-            rating_filter = st.selectbox("신기함 필터", ["전체", "낮음(~2)", "보통(2-4)", "높음(4+)"])
-        st.markdown('</div>', unsafe_allow_html=True)
     
     # 마술 데이터 필터링
     magic_df = st.session_state.magic_list.copy()
@@ -1034,10 +1108,70 @@ def show_magic_tricks():
             high_rating_count = len(magic_df[magic_df['신기함정도'] >= 4.0])
             st.metric("고평점 마술", f"{high_rating_count}개")
         
+        # 페이지네이션 계산
+        total_items = len(magic_df)
+        total_pages = (total_items - 1) // magic_items_per_page + 1 if total_items > 0 else 1
+        
+        # 현재 페이지 상태 관리
+        if 'current_magic_page' not in st.session_state:
+            st.session_state.current_magic_page = 1
+        
+        # 페이지 범위 조정
+        if st.session_state.current_magic_page > total_pages:
+            st.session_state.current_magic_page = total_pages
+        
+        # 페이지네이션 컨트롤
+        if total_items > magic_items_per_page:
+            st.markdown("---")
+            col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+            
+            with col1:
+                if st.button("⏮️ 첫 페이지", disabled=(st.session_state.current_magic_page == 1), key="magic_first"):
+                    st.session_state.current_magic_page = 1
+                    st.rerun()
+            
+            with col2:
+                if st.button("◀️ 이전", disabled=(st.session_state.current_magic_page == 1), key="magic_prev"):
+                    st.session_state.current_magic_page -= 1
+                    st.rerun()
+            
+            with col3:
+                page_options = list(range(1, total_pages + 1))
+                selected_page = st.selectbox(
+                    f"페이지 {st.session_state.current_magic_page} / {total_pages}",
+                    page_options,
+                    index=st.session_state.current_magic_page - 1,
+                    key="magic_page_selector"
+                )
+                if selected_page != st.session_state.current_magic_page:
+                    st.session_state.current_magic_page = selected_page
+                    st.rerun()
+            
+            with col4:
+                if st.button("▶️ 다음", disabled=(st.session_state.current_magic_page == total_pages), key="magic_next"):
+                    st.session_state.current_magic_page += 1
+                    st.rerun()
+            
+            with col5:
+                if st.button("⏭️ 마지막 페이지", disabled=(st.session_state.current_magic_page == total_pages), key="magic_last"):
+                    st.session_state.current_magic_page = total_pages
+                    st.rerun()
+            
+            # 현재 페이지 정보 표시
+            start_idx = (st.session_state.current_magic_page - 1) * magic_items_per_page + 1
+            end_idx = min(st.session_state.current_magic_page * magic_items_per_page, total_items)
+            st.info(f"📄 {start_idx}-{end_idx} / {total_items} 마술 표시 중")
+        
+        st.markdown("---")
+        
+        # 현재 페이지에 해당하는 마술만 추출
+        start_idx = (st.session_state.current_magic_page - 1) * magic_items_per_page
+        end_idx = start_idx + magic_items_per_page
+        page_magic_df = magic_df.iloc[start_idx:end_idx]
+        
         # 마술 아이템 표시
-        for idx, row in magic_df.iterrows():
+        for idx, row in page_magic_df.iterrows():
             with st.container():
-                st.markdown('<div class="card-container">', unsafe_allow_html=True)
                 col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
                 
                 with col1:
@@ -1068,9 +1202,24 @@ def show_magic_tricks():
                     if st.button("🗑️", key=f"delete_magic_{idx}", help="마술 삭제"):
                         st.session_state.magic_list = st.session_state.magic_list.drop(idx).reset_index(drop=True)
                         save_data()
+                        
+                        # 삭제 후 페이지 조정
+                        remaining_items = len(st.session_state.magic_list)
+                        new_total_pages = (remaining_items - 1) // magic_items_per_page + 1 if remaining_items > 0 else 1
+                        if st.session_state.current_magic_page > new_total_pages:
+                            st.session_state.current_magic_page = new_total_pages
+                        
                         st.rerun()
                 
-                st.markdown("---")  # 카드 간 구분선
+                st.markdown("---")
+        
+        # 페이지 하단 정보
+        if total_items > magic_items_per_page:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.markdown(f"<div style='text-align: center;'>페이지 {st.session_state.current_magic_page} / {total_pages}</div>", 
+                           unsafe_allow_html=True)
+                
     else:
         st.info("🎩 표시할 마술이 없습니다. 필터를 조정하거나 새 마술을 추가해보세요!")
 
