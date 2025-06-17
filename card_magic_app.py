@@ -60,7 +60,7 @@ def load_data():
 st.set_page_config(
     page_title="Card Collection & Magic Manager",
     page_icon="🎭",
-    layout="wide",
+    layout="wide",  # 이미 wide로 설정되어 있음
     initial_sidebar_state="expanded"
 )
 
@@ -176,6 +176,29 @@ st.markdown("""
         height: 100%;
         background: linear-gradient(90deg, #27ae60, #f1c40f, #e74c3c);
         transition: width 0.5s ease;
+
+    /* 추가: 테이블 가독성 향상 */
+    .dataframe {
+        font-size: 14px;
+        width: 100% !important;
+    }
+    
+    .dataframe th, .dataframe td {
+        padding: 8px 12px !important;
+        text-align: left !important;
+    }
+    
+    /* 컨테이너 최대 폭 늘리기 */
+    .main .block-container {
+        max-width: 1200px;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+    
+    /* 테이블 스크롤 활성화 */
+    .stMarkdown > div > table {
+        width: 100%;
+        overflow-x: auto;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -323,6 +346,7 @@ def add_card_to_wishlist():
         st.session_state.wishlist, 
         pd.DataFrame([new_wish])
     ], ignore_index=True)
+    save_data()
 
 def add_magic():
     new_magic = {
@@ -333,6 +357,7 @@ def add_magic():
         '관련영상': st.session_state.new_magic_video,
         '비고': st.session_state.new_magic_note
     }
+    save_data()
     
     # 새 장르 추가
     if st.session_state.genre_option == "새로 추가":
@@ -629,10 +654,60 @@ def show_card_collection():
                                '현재가격($)', '현재가격(₩)', '상승률(%)', '제조사', '단종여부', '별점표시']].to_html(escape=False), 
                    unsafe_allow_html=True)
         
-        # 편집 및 삭제 기능
-        st.markdown("### ✏️ Edit & Delete")
-        if not df.empty:
-            selected_card = st.selectbox("편집할 카드 선택", df['카드명'].tolist())
+    # 편집 및 삭제 기능
+    st.markdown("### ✏️ Edit & Delete")
+    if not df.empty:
+        selected_card = st.selectbox("편집할 카드 선택", df['카드명'].tolist())
+        
+        # 편집 모드
+        with st.expander(f"✏️ '{selected_card}' 카드 편집", expanded=False):
+            card_idx = st.session_state.card_collection[st.session_state.card_collection['카드명'] == selected_card].index[0]
+            current_card = st.session_state.card_collection.loc[card_idx]
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                edit_name = st.text_input("카드명", value=current_card['카드명'], key="edit_card_name")
+                edit_purchase = st.number_input("구매가격($)", min_value=0.0, step=0.01, value=float(current_card['구매가격($)']), key="edit_purchase_price")
+                edit_current = st.number_input("현재가격($)", min_value=0.0, step=0.01, value=float(current_card['현재가격($)']), key="edit_current_price")
+            
+            with col2:
+                edit_manufacturer = st.selectbox("제조사", st.session_state.manufacturers, 
+                                               index=st.session_state.manufacturers.index(current_card['제조사']) if current_card['제조사'] in st.session_state.manufacturers else 0,
+                                               key="edit_manufacturer")
+                edit_discontinued = st.selectbox("단종여부", ["단종", "현재판매"], 
+                                               index=0 if current_card['단종여부'] == "단종" else 1,
+                                               key="edit_discontinued")
+                edit_status = st.selectbox("개봉여부", ["미개봉", "개봉", "새 덱"],
+                                         index=["미개봉", "개봉", "새 덱"].index(current_card['개봉여부']) if current_card['개봉여부'] in ["미개봉", "개봉", "새 덱"] else 0,
+                                         key="edit_status")
+            
+            with col3:
+                edit_site = st.text_input("판매사이트 URL", value=str(current_card['판매사이트']) if pd.notna(current_card['판매사이트']) else "", key="edit_site")
+                edit_rating = st.slider("디자인별점", 1.0, 5.0, float(current_card['디자인별점']), 0.5, key="edit_rating")
+                edit_finish = st.selectbox("피니시", ["Standard", "Air Cushion", "Linen", "Smooth", "Embossed"],
+                                         index=["Standard", "Air Cushion", "Linen", "Smooth", "Embossed"].index(current_card['피니시']) if current_card['피니시'] in ["Standard", "Air Cushion", "Linen", "Smooth", "Embossed"] else 0,
+                                         key="edit_finish")
+            
+            if st.button("💾 수정 저장", key="save_edit_card"):
+                st.session_state.card_collection.loc[card_idx] = {
+                    '카드명': edit_name,
+                    '구매가격($)': edit_purchase,
+                    '현재가격($)': edit_current,
+                    '제조사': edit_manufacturer,
+                    '단종여부': edit_discontinued,
+                    '개봉여부': edit_status,
+                    '판매사이트': edit_site,
+                    '디자인별점': edit_rating,
+                    '피니시': edit_finish,
+                    '디자인스타일': current_card['디자인스타일']
+                }
+                save_data()
+                st.success("✅ 카드 정보가 수정되었습니다!")
+                st.rerun()
+        
+        col1, col2 = st.columns(2)
+    # ... 기존 삭제 코드 유지 ...
             col1, col2 = st.columns(2)
                     
             with col1:
@@ -747,6 +822,39 @@ def show_wishlist():
         st.markdown("### 💫 Wishlist")
         st.markdown(df_display[['이름_링크', '타입아이콘', '가격($)', '가격(₩)', '우선순위표시', '비고']].to_html(escape=False), 
                    unsafe_allow_html=True)
+        # 편집 기능 추가
+        with st.expander(f"✏️ '{selected_wish}' 위시리스트 편집", expanded=False):
+            wish_idx = st.session_state.wishlist[st.session_state.wishlist['이름'] == selected_wish].index[0]
+            current_wish = st.session_state.wishlist.loc[wish_idx]
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                edit_wish_name = st.text_input("이름", value=current_wish['이름'], key="edit_wish_name")
+                edit_wish_type = st.selectbox("타입", ["카드", "마술도구", "책", "DVD", "기타"],
+                                            index=["카드", "마술도구", "책", "DVD", "기타"].index(current_wish['타입']) if current_wish['타입'] in ["카드", "마술도구", "책", "DVD", "기타"] else 0,
+                                            key="edit_wish_type")
+                edit_wish_price = st.number_input("가격($)", min_value=0.0, step=0.01, value=float(current_wish['가격($)']), key="edit_wish_price")
+            
+            with col2:
+                edit_wish_site = st.text_input("판매사이트 URL", value=str(current_wish['판매사이트']) if pd.notna(current_wish['판매사이트']) else "", key="edit_wish_site")
+                edit_wish_priority = st.slider("우선순위", 1.0, 5.0, float(current_wish['우선순위']), 0.5, key="edit_wish_priority")
+                edit_wish_note = st.text_area("비고", value=str(current_wish['비고']) if pd.notna(current_wish['비고']) else "", key="edit_wish_note")
+            
+            if st.button("💾 위시리스트 수정 저장", key="save_edit_wish"):
+                st.session_state.wishlist.loc[wish_idx] = {
+                    '이름': edit_wish_name,
+                    '타입': edit_wish_type,
+                    '가격($)': edit_wish_price,
+                    '판매사이트': edit_wish_site,
+                    '우선순위': edit_wish_priority,
+                    '비고': edit_wish_note
+                }
+                save_data()
+                st.success("✅ 위시리스트가 수정되었습니다!")
+                st.rerun()
+        
+        selected_wish = st.selectbox("편집/삭제할 위시리스트 선택", df['이름'].tolist())      
         
         # 삭제 기능
         selected_wish = st.selectbox("삭제할 위시리스트 선택", df['이름'].tolist())
@@ -853,7 +961,39 @@ def show_magic_tricks():
                     st.write(f"{row['난이도']:.1f}/5.0")
                 
                 st.divider()
+        # 편집 기능 추가
+        with st.expander(f"✏️ '{selected_magic}' 마술 편집", expanded=False):
+            magic_idx = st.session_state.magic_list[st.session_state.magic_list['마술명'] == selected_magic].index[0]
+            current_magic = st.session_state.magic_list.loc[magic_idx]
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                edit_magic_name = st.text_input("마술명", value=current_magic['마술명'], key="edit_magic_name")
+                edit_magic_genre = st.selectbox("장르", st.session_state.magic_genres,
+                                              index=st.session_state.magic_genres.index(current_magic['장르']) if current_magic['장르'] in st.session_state.magic_genres else 0,
+                                              key="edit_magic_genre")
+                edit_magic_rating = st.slider("신기함정도", 1.0, 5.0, float(current_magic['신기함정도']), 0.5, key="edit_magic_rating")
+            
+            with col2:
+                edit_magic_difficulty = st.slider("난이도", 1.0, 5.0, float(current_magic['난이도']), 0.5, key="edit_magic_difficulty")
+                edit_magic_video = st.text_input("관련영상 URL", value=str(current_magic['관련영상']) if pd.notna(current_magic['관련영상']) else "", key="edit_magic_video")
+                edit_magic_note = st.text_area("비고", value=str(current_magic['비고']) if pd.notna(current_magic['비고']) else "", key="edit_magic_note")
+            
+            if st.button("💾 마술 수정 저장", key="save_edit_magic"):
+                st.session_state.magic_list.loc[magic_idx] = {
+                    '마술명': edit_magic_name,
+                    '장르': edit_magic_genre,
+                    '신기함정도': edit_magic_rating,
+                    '난이도': edit_magic_difficulty,
+                    '관련영상': edit_magic_video,
+                    '비고': edit_magic_note
+                }
+                save_data()
+                st.success("✅ 마술 정보가 수정되었습니다!")
+                st.rerun()
         
+        selected_magic = st.selectbox("편집/삭제할 마술 선택", df['마술명'].tolist())
         # 삭제 기능
         selected_magic = st.selectbox("삭제할 마술 선택", df['마술명'].tolist())
         if st.button("🗑️ 마술 삭제"):
