@@ -603,6 +603,21 @@ def show_enhanced_dashboard():
 def show_card_collection():
     st.markdown('<h2 class="section-header">🃏 Card Collection Management</h2>', unsafe_allow_html=True)
     
+    # 사이드바 필터링 및 검색 섹션
+    with st.sidebar:
+        st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
+        
+        search_term = st.text_input("🔎 카드명 검색")
+        manufacturer_filter = st.selectbox("제조사 필터", 
+                                         ["전체"] + st.session_state.manufacturers)
+        status_filter = st.selectbox("개봉상태 필터", ["전체", "미개봉", "개봉", "새 덱"])
+        sort_by = st.selectbox("정렬 기준", ["카드명", "구매가격($)", "현재가격($)", "디자인별점"])
+        
+        # 페이지네이션 설정
+        st.markdown("---")
+        st.markdown("**📄 페이지 설정**")
+        cards_per_page = st.selectbox("페이지당 카드 수", [5, 10, 15, 20], index=1)
+    
     # 카드 추가 섹션
     st.markdown('<h3 class="sub-section-header">➕ 새 카드 추가</h3>', unsafe_allow_html=True)
     with st.expander("카드 정보 입력", expanded=False):
@@ -634,30 +649,14 @@ def show_card_collection():
             if st.session_state.new_card_name:
                 add_card_to_collection()
                 st.success("✅ 카드가 성공적으로 추가되었습니다!")
+                # 페이지 초기화 (새 카드가 첫 페이지에 표시되도록)
+                if 'current_page' in st.session_state:
+                    st.session_state.current_page = 1
                 st.rerun()
             else:
                 st.error("❌ 카드명을 입력해주세요!")
     
-    # 필터링 및 검색 섹션
-    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            search_term = st.text_input("🔎 카드명 검색")
-        
-        with col2:
-            manufacturer_filter = st.selectbox("제조사 필터", 
-                                             ["전체"] + st.session_state.manufacturers)
-        
-        with col3:
-            status_filter = st.selectbox("개봉상태 필터", ["전체", "미개봉", "개봉", "새 덱"])
-        
-        with col4:
-            sort_by = st.selectbox("정렬 기준", ["카드명", "구매가격($)", "현재가격($)", "디자인별점"])
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-# 데이터 필터링 및 정렬
+    # 데이터 필터링 및 정렬
     df = st.session_state.card_collection.copy()
     
     if not df.empty:
@@ -695,11 +694,71 @@ def show_card_collection():
             if total_purchase > 0:
                 roi = ((total_current - total_purchase) / total_purchase) * 100
                 st.metric("수익률", f"{roi:.1f}%", delta=f"{roi:.1f}%")
-        st.markdown("---")  # 카드 간 구분선   
-
-        # 카드 목록 표시 (개선된 버전)
-        for idx, row in df.iterrows():
-            # 전체 카드를 감싸는 컨테이너
+        
+        # 페이지네이션 계산
+        total_cards = len(df)
+        total_pages = (total_cards - 1) // cards_per_page + 1 if total_cards > 0 else 1
+        
+        # 현재 페이지 상태 관리
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 1
+        
+        # 페이지 범위 조정
+        if st.session_state.current_page > total_pages:
+            st.session_state.current_page = total_pages
+        
+        # 페이지네이션 컨트롤 (카드가 페이지당 표시 개수보다 많을 때만 표시)
+        if total_cards > cards_per_page:
+            st.markdown("---")
+            col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+            
+            with col1:
+                if st.button("⏮️ 첫 페이지", disabled=(st.session_state.current_page == 1)):
+                    st.session_state.current_page = 1
+                    st.rerun()
+            
+            with col2:
+                if st.button("◀️ 이전", disabled=(st.session_state.current_page == 1)):
+                    st.session_state.current_page -= 1
+                    st.rerun()
+            
+            with col3:
+                # 페이지 선택 드롭다운
+                page_options = list(range(1, total_pages + 1))
+                selected_page = st.selectbox(
+                    f"페이지 {st.session_state.current_page} / {total_pages}",
+                    page_options,
+                    index=st.session_state.current_page - 1,
+                    key="page_selector"
+                )
+                if selected_page != st.session_state.current_page:
+                    st.session_state.current_page = selected_page
+                    st.rerun()
+            
+            with col4:
+                if st.button("▶️ 다음", disabled=(st.session_state.current_page == total_pages)):
+                    st.session_state.current_page += 1
+                    st.rerun()
+            
+            with col5:
+                if st.button("⏭️ 마지막 페이지", disabled=(st.session_state.current_page == total_pages)):
+                    st.session_state.current_page = total_pages
+                    st.rerun()
+            
+            # 현재 페이지 정보 표시
+            start_idx = (st.session_state.current_page - 1) * cards_per_page + 1
+            end_idx = min(st.session_state.current_page * cards_per_page, total_cards)
+            st.info(f"📄 {start_idx}-{end_idx} / {total_cards} 카드 표시 중")
+        
+        st.markdown("---")
+        
+        # 현재 페이지에 해당하는 카드만 추출
+        start_idx = (st.session_state.current_page - 1) * cards_per_page
+        end_idx = start_idx + cards_per_page
+        page_df = df.iloc[start_idx:end_idx]
+        
+        # 카드 목록 표시 (페이지별)
+        for idx, row in page_df.iterrows():
             # 컬럼 생성
             col1, col2, col3, col4, col5 = st.columns([2, 3, 3, 3, 1])
             with col1:
@@ -730,8 +789,22 @@ def show_card_collection():
                 if st.button("🗑️ 삭제", key=f"delete_card_{idx}", help="카드 삭제"):
                     st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
                     save_data()
+                    
+                    # 삭제 후 페이지 조정
+                    remaining_cards = len(st.session_state.card_collection)
+                    new_total_pages = (remaining_cards - 1) // cards_per_page + 1 if remaining_cards > 0 else 1
+                    if st.session_state.current_page > new_total_pages:
+                        st.session_state.current_page = new_total_pages
+                    
                     st.rerun()
             st.markdown("---")  # 카드 간 구분선
+        
+        # 페이지 하단에도 페이지네이션 표시 (카드가 많을 때)
+        if total_cards > cards_per_page:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.markdown(f"<div style='text-align: center;'>페이지 {st.session_state.current_page} / {total_pages}</div>", 
+                           unsafe_allow_html=True)
                 
     else:
         st.info("🃏 표시할 카드가 없습니다. 필터를 조정하거나 새 카드를 추가해보세요!")
@@ -818,6 +891,7 @@ def show_wishlist():
         with col4:
             high_priority_count = len(wish_df[wish_df['우선순위'] >= 4.0])
             st.metric("높은 우선순위", f"{high_priority_count}개")
+        st.markdown("---")  # 카드 간 구분선
         
         # 위시리스트 아이템 표시
         for idx, row in wish_df.iterrows():
@@ -856,7 +930,7 @@ def show_wishlist():
                         save_data()
                         st.rerun()
                 
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown("---")  # 카드 간 구분선
     else:
         st.info("💫 표시할 위시리스트 아이템이 없습니다. 필터를 조정하거나 새 아이템을 추가해보세요!")
 
@@ -996,7 +1070,7 @@ def show_magic_tricks():
                         save_data()
                         st.rerun()
                 
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown("---")  # 카드 간 구분선
     else:
         st.info("🎩 표시할 마술이 없습니다. 필터를 조정하거나 새 마술을 추가해보세요!")
 
