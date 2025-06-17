@@ -646,8 +646,7 @@ def show_card_collection():
         # 카드 목록 표시
         for idx, row in df.iterrows():
             with st.container():
-                    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
-                st.markdown('<div class="card-container">
+                st.markdown('<div class="card-container">', unsafe_allow_html=True)
                 col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
                 
                 with col1:
@@ -678,8 +677,8 @@ def show_card_collection():
                     if st.button("🗑️", key=f"delete_card_{idx}", help="카드 삭제"):
                         st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
                         save_data()
-                        st.rerun()', unsafe_allow_html=True)
-
+                        st.rerun()
+                
                 st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info("🃏 표시할 카드가 없습니다. 필터를 조정하거나 새 카드를 추가해보세요!")
