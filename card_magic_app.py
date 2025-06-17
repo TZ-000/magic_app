@@ -695,7 +695,7 @@ def show_card_collection():
             if total_purchase > 0:
                 roi = ((total_current - total_purchase) / total_purchase) * 100
                 st.metric("수익률", f"{roi:.1f}%", delta=f"{roi:.1f}%")
-     st.markdown("---")  # 카드 간 구분선   
+        st.markdown("---")  # 카드 간 구분선   
 
         # 카드 목록 표시 (개선된 버전)
         for idx, row in df.iterrows():
