@@ -819,6 +819,7 @@ def show_wishlist():
         wish_search = st.text_input("🔎 아이템명 검색", key="wish_search")
         type_filter = st.selectbox("타입 필터", ["전체", "카드", "마술용품", "책", "DVD", "기타"])
         priority_filter = st.selectbox("우선순위 필터", ["전체", "높음(4+)", "중간(2-4)", "낮음(~2)"])
+        sort_by = st.selectbox("정렬 기준", ["우선순위", "아이템명", "예상가격($)", "타입"])
         
         # 페이지네이션 설정
         st.markdown("---")
@@ -828,7 +829,7 @@ def show_wishlist():
     # 위시리스트 아이템 추가 섹션
     st.markdown('<h3 class="sub-section-header">➕ 새 아이템 추가</h3>', unsafe_allow_html=True)
     with st.expander("위시리스트 아이템 입력", expanded=False):
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             st.text_input("아이템명", key="new_wish_name")
@@ -838,7 +839,9 @@ def show_wishlist():
         with col2:
             st.text_input("판매사이트 URL", key="new_wish_site")
             st.slider("우선순위", 1.0, 5.0, 3.0, 0.5, key="new_wish_priority")
-            st.text_area("비고", key="new_wish_note")
+        
+        with col3:
+            st.text_area("비고", key="new_wish_note", height=100)
         
         if st.button("위시리스트에 추가", type="primary"):
             if st.session_state.new_wish_name:
@@ -851,7 +854,7 @@ def show_wishlist():
             else:
                 st.error("❌ 아이템명을 입력해주세요!")
     
-    # 위시리스트 데이터 필터링
+    # 위시리스트 데이터 필터링 및 정렬
     wish_df = st.session_state.wishlist.copy()
     
     if not wish_df.empty:
@@ -871,8 +874,12 @@ def show_wishlist():
         elif priority_filter == "낮음(~2)":
             wish_df = wish_df[wish_df['우선순위'] < 2.0]
         
-        # 우선순위 순으로 정렬
-        wish_df = wish_df.sort_values('우선순위', ascending=False)
+        # 정렬
+        if not wish_df.empty:
+            if sort_by == "우선순위":
+                wish_df = wish_df.sort_values('우선순위', ascending=False)
+            else:
+                wish_df = wish_df.sort_values(sort_by, ascending=True)
     
     # 위시리스트 표시
     st.markdown('<h3 class="sub-section-header">🛍️ Wishlist Items</h3>', unsafe_allow_html=True)
@@ -904,7 +911,7 @@ def show_wishlist():
         if st.session_state.current_wish_page > total_pages:
             st.session_state.current_wish_page = total_pages
         
-        # 페이지네이션 컨트롤
+        # 페이지네이션 컨트롤 (아이템이 페이지당 표시 개수보다 많을 때만 표시)
         if total_items > wish_items_per_page:
             st.markdown("---")
             col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
@@ -953,52 +960,50 @@ def show_wishlist():
         end_idx = start_idx + wish_items_per_page
         page_wish_df = wish_df.iloc[start_idx:end_idx]
         
-        # 위시리스트 아이템 표시
+        # 위시리스트 아이템 목록 표시 (페이지별)
         for idx, row in page_wish_df.iterrows():
-            with st.container():
-                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+            # 컬럼 생성
+            col1, col2, col3, col4, col5 = st.columns([2, 3, 3, 3, 1])
+            with col1:
+                priority_icon = get_priority_color(row['우선순위'])
+                type_icon = "🃏" if row['타입'] == "카드" else "🎩" if row['타입'] == "마술용품" else "📚" if row['타입'] == "책" else "💿" if row['타입'] == "DVD" else "📦"
+                st.markdown(f"**{priority_icon} {type_icon} {row['이름']}**")
+                st.caption(f"타입: {row['타입']}")
+            
+            with col2:
+                st.write(f"**예상:** ${row['가격($)']:.2f}")
+                krw_price = usd_to_krw(row['가격($)'])
+                st.caption(f"₩{krw_price:,.0f}")
+            
+            with col3:
+                priority_stars = display_stars(row['우선순위'])
+                st.write(f"**우선순위:** {priority_stars}")
+                st.write(f"**점수:** {row['우선순위']:.1f}/5.0")
+            
+            with col4:
+                if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
+                    st.markdown(f"[🛒 구매하기]({row['판매사이트']})")
+                else:
+                    st.write("링크 없음")
                 
-                with col1:
-                    priority_icon = get_priority_color(row['우선순위'])
-                    type_icon = "🃏" if row['타입'] == "카드" else "🎩" if row['타입'] == "마술용품" else "📚" if row['타입'] == "책" else "💿" if row['타입'] == "DVD" else "📦"
-                    st.markdown(f"**{priority_icon} {type_icon} {row['이름']}**")
-                    st.caption(f"타입: {row['타입']}")
-                
-                with col2:
-                    st.write(f"**가격:** ${row['가격($)']:.2f}")
-                    krw_price = usd_to_krw(row['가격($)'])
-                    st.caption(f"₩{krw_price:,.0f}")
-                
-                with col3:
-                    priority_stars = "⭐" * int(row['우선순위'])
-                    st.write(f"**우선순위:** {priority_stars}")
-                    st.write(f"**점수:** {row['우선순위']:.1f}/5.0")
-                
-                with col4:
-                    if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
-                        st.markdown(f"[🔗 구매링크]({row['판매사이트']})")
-                    else:
-                        st.write("링크 없음")
+                if pd.notna(row['비고']) and row['비고'] != "":
+                    st.caption(f"💬 {row['비고']}")
+            
+            with col5:
+                if st.button("🗑️ 삭제", key=f"delete_wish_{idx}", help="아이템 삭제"):
+                    st.session_state.wishlist = st.session_state.wishlist.drop(idx).reset_index(drop=True)
+                    save_data()
                     
-                    if pd.notna(row['비고']) and row['비고'] != "":
-                        st.caption(f"💬 {row['비고']}")
-                
-                with col5:
-                    if st.button("🗑️", key=f"delete_wish_{idx}", help="아이템 삭제"):
-                        st.session_state.wishlist = st.session_state.wishlist.drop(idx).reset_index(drop=True)
-                        save_data()
-                        
-                        # 삭제 후 페이지 조정
-                        remaining_items = len(st.session_state.wishlist)
-                        new_total_pages = (remaining_items - 1) // wish_items_per_page + 1 if remaining_items > 0 else 1
-                        if st.session_state.current_wish_page > new_total_pages:
-                            st.session_state.current_wish_page = new_total_pages
-                        
-                        st.rerun()
-                
-                st.markdown("---")
+                    # 삭제 후 페이지 조정
+                    remaining_items = len(st.session_state.wishlist)
+                    new_total_pages = (remaining_items - 1) // wish_items_per_page + 1 if remaining_items > 0 else 1
+                    if st.session_state.current_wish_page > new_total_pages:
+                        st.session_state.current_wish_page = new_total_pages
+                    
+                    st.rerun()
+            st.markdown("---")  # 아이템 간 구분선
         
-        # 페이지 하단 정보
+        # 페이지 하단에도 페이지네이션 표시 (아이템이 많을 때)
         if total_items > wish_items_per_page:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
@@ -1020,6 +1025,7 @@ def show_magic_tricks():
         genre_filter = st.selectbox("장르 필터", ["전체"] + st.session_state.magic_genres)
         difficulty_filter = st.selectbox("난이도 필터", ["전체", "쉬움(~2)", "보통(2-4)", "어려움(4+)"])
         rating_filter = st.selectbox("신기함 필터", ["전체", "낮음(~2)", "보통(2-4)", "높음(4+)"])
+        sort_by = st.selectbox("정렬 기준", ["마술명", "신기함정도", "난이도", "장르"])
         
         # 페이지네이션 설정
         st.markdown("---")
@@ -1029,7 +1035,7 @@ def show_magic_tricks():
     # 마술 추가 섹션
     st.markdown('<h3 class="sub-section-header">➕ 새 마술 추가</h3>', unsafe_allow_html=True)
     with st.expander("마술 정보 입력", expanded=False):
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             st.text_input("마술명", key="new_magic_name")
@@ -1040,13 +1046,14 @@ def show_magic_tricks():
                 st.selectbox("장르", st.session_state.magic_genres, key="selected_genre")
             else:
                 st.text_input("새 장르명", key="new_genre_input")
-            
-            st.slider("신기함 정도", 1.0, 5.0, 3.0, 0.5, key="new_magic_rating")
         
         with col2:
+            st.slider("신기함 정도", 1.0, 5.0, 3.0, 0.5, key="new_magic_rating")
             st.slider("난이도", 1.0, 5.0, 3.0, 0.5, key="new_magic_difficulty")
+        
+        with col3:
             st.text_input("관련 영상 URL", key="new_magic_video")
-            st.text_area("비고", key="new_magic_note")
+            st.text_area("비고", key="new_magic_note", height=100)
         
         if st.button("마술 추가", type="primary"):
             if st.session_state.new_magic_name:
@@ -1059,7 +1066,7 @@ def show_magic_tricks():
             else:
                 st.error("❌ 마술명을 입력해주세요!")
     
-    # 마술 데이터 필터링
+    # 마술 데이터 필터링 및 정렬
     magic_df = st.session_state.magic_list.copy()
     
     if not magic_df.empty:
@@ -1087,8 +1094,14 @@ def show_magic_tricks():
         elif rating_filter == "높음(4+)":
             magic_df = magic_df[magic_df['신기함정도'] > 4.0]
         
-        # 신기함 정도 순으로 정렬
-        magic_df = magic_df.sort_values('신기함정도', ascending=False)
+        # 정렬
+        if not magic_df.empty:
+            if sort_by == "신기함정도":
+                magic_df = magic_df.sort_values('신기함정도', ascending=False)
+            elif sort_by == "난이도":
+                magic_df = magic_df.sort_values('난이도', ascending=False)
+            else:
+                magic_df = magic_df.sort_values(sort_by, ascending=True)
     
     # 마술 목록 표시
     st.markdown('<h3 class="sub-section-header">🎭 Magic Tricks Collection</h3>', unsafe_allow_html=True)
@@ -1120,7 +1133,7 @@ def show_magic_tricks():
         if st.session_state.current_magic_page > total_pages:
             st.session_state.current_magic_page = total_pages
         
-        # 페이지네이션 컨트롤
+        # 페이지네이션 컨트롤 (마술이 페이지당 표시 개수보다 많을 때만 표시)
         if total_items > magic_items_per_page:
             st.markdown("---")
             col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
@@ -1169,51 +1182,49 @@ def show_magic_tricks():
         end_idx = start_idx + magic_items_per_page
         page_magic_df = magic_df.iloc[start_idx:end_idx]
         
-        # 마술 아이템 표시
+        # 마술 목록 표시 (페이지별)
         for idx, row in page_magic_df.iterrows():
-            with st.container():
-                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+            # 컬럼 생성
+            col1, col2, col3, col4, col5 = st.columns([2, 3, 3, 3, 1])
+            with col1:
+                genre_icon = "🃏" if "카드" in row['장르'] else "🪙" if "동전" in row['장르'] else "🧠" if "멘탈" in row['장르'] else "🎭"
+                st.markdown(f"**{genre_icon} {row['마술명']}**")
+                st.caption(f"🎯 {row['장르']}")
+            
+            with col2:
+                amazement_stars = display_stars(row['신기함정도'])
+                st.write(f"**신기함:** {amazement_stars}")
+                st.write(f"**점수:** {row['신기함정도']:.1f}/5.0")
+            
+            with col3:
+                difficulty_stars = display_stars(row['난이도'])
+                st.write(f"**난이도:** {difficulty_stars}")
+                st.write(f"**점수:** {row['난이도']:.1f}/5.0")
+            
+            with col4:
+                if pd.notna(row['관련영상']) and row['관련영상'] != "":
+                    st.markdown(f"[🎥 영상보기]({row['관련영상']})")
+                else:
+                    st.write("영상 없음")
                 
-                with col1:
-                    genre_icon = "🃏" if "카드" in row['장르'] else "🪙" if "동전" in row['장르'] else "🧠" if "멘탈" in row['장르'] else "🎭"
-                    st.markdown(f"**{genre_icon} {row['마술명']}**")
-                    st.caption(f"장르: {row['장르']}")
-                
-                with col2:
-                    amazement_stars = display_stars(row['신기함정도'])
-                    st.write(f"**신기함:** {amazement_stars}")
-                    st.caption(f"점수: {row['신기함정도']:.1f}/5.0")
-                
-                with col3:
-                    difficulty_color = "#27ae60" if row['난이도'] <= 2 else "#f1c40f" if row['난이도'] <= 3.5 else "#e74c3c"
-                    st.write(f"**난이도:** {row['난이도']:.1f}/5.0")
-                    st.markdown(display_difficulty_bar(row['난이도']), unsafe_allow_html=True)
-                
-                with col4:
-                    if pd.notna(row['관련영상']) and row['관련영상'] != "":
-                        st.markdown(f"[🎥 영상보기]({row['관련영상']})")
-                    else:
-                        st.write("영상 없음")
+                if pd.notna(row['비고']) and row['비고'] != "":
+                    st.caption(f"💬 {row['비고']}")
+            
+            with col5:
+                if st.button("🗑️ 삭제", key=f"delete_magic_{idx}", help="마술 삭제"):
+                    st.session_state.magic_list = st.session_state.magic_list.drop(idx).reset_index(drop=True)
+                    save_data()
                     
-                    if pd.notna(row['비고']) and row['비고'] != "":
-                        st.caption(f"💬 {row['비고']}")
-                
-                with col5:
-                    if st.button("🗑️", key=f"delete_magic_{idx}", help="마술 삭제"):
-                        st.session_state.magic_list = st.session_state.magic_list.drop(idx).reset_index(drop=True)
-                        save_data()
-                        
-                        # 삭제 후 페이지 조정
-                        remaining_items = len(st.session_state.magic_list)
-                        new_total_pages = (remaining_items - 1) // magic_items_per_page + 1 if remaining_items > 0 else 1
-                        if st.session_state.current_magic_page > new_total_pages:
-                            st.session_state.current_magic_page = new_total_pages
-                        
-                        st.rerun()
-                
-                st.markdown("---")
+                    # 삭제 후 페이지 조정
+                    remaining_items = len(st.session_state.magic_list)
+                    new_total_pages = (remaining_items - 1) // magic_items_per_page + 1 if remaining_items > 0 else 1
+                    if st.session_state.current_magic_page > new_total_pages:
+                        st.session_state.current_magic_page = new_total_pages
+                    
+                    st.rerun()
+            st.markdown("---")  # 마술 간 구분선
         
-        # 페이지 하단 정보
+        # 페이지 하단에도 페이지네이션 표시 (마술이 많을 때)
         if total_items > magic_items_per_page:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
