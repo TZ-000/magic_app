@@ -308,6 +308,7 @@ def add_card_to_collection():
         st.session_state.card_collection, 
         pd.DataFrame([new_card])
     ], ignore_index=True)
+    save_data()
 
 def add_card_to_wishlist():
     new_wish = {
@@ -332,7 +333,6 @@ def add_magic():
         '관련영상': st.session_state.new_magic_video,
         '비고': st.session_state.new_magic_note
     }
-    save_data()
     
     # 새 장르 추가
     if st.session_state.genre_option == "새로 추가":
@@ -343,6 +343,7 @@ def add_magic():
         st.session_state.magic_list, 
         pd.DataFrame([new_magic])
     ], ignore_index=True)
+    save_data()
 
 # 클릭 가능한 링크 생성
 def make_clickable_link(name, url):
