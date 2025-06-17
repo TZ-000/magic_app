@@ -697,13 +697,11 @@ def show_card_collection():
                 st.metric("수익률", f"{roi:.1f}%", delta=f"{roi:.1f}%")
         
         # 카드 목록 표시 (개선된 버전)
-            st.markdown("### 📋 카드 정보 ### 💰 가격 정보 ### ⭐ 평가 정보 ### 🔗 구매 링크 ### 🛠️ 관리")
         for idx, row in df.iterrows():
             # 전체 카드를 감싸는 컨테이너
             # 컬럼 생성
             col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
             with col1:
-                st.markdown("### 📋 카드 정보")
                 status_icon = get_status_icon(row['개봉여부'])
                 st.markdown(f"**{status_icon} {row['카드명']}**")
                 st.caption(f"🏭 {row['제조사']} | {row['피니시']} | {row['디자인스타일']}")
