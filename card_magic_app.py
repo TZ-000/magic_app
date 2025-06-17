@@ -60,7 +60,7 @@ def load_data():
 st.set_page_config(
     page_title="Card Collection & Magic Manager",
     page_icon="🎭",
-    layout="wide",  # 이미 wide로 설정되어 있음
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -89,6 +89,18 @@ st.markdown("""
         padding-bottom: 0.5rem;
     }
     
+    .sub-section-header {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #34495e;
+        margin: 1rem 0 0.5rem 0;
+        border-left: 4px solid #3498db;
+        padding-left: 1rem;
+        background-color: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+    }
+    
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem;
@@ -104,49 +116,54 @@ st.markdown("""
         transform: translateY(-5px);
     }
     
-    .quick-action-card {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 1rem;
+    .card-container {
+        background-color: #ffffff;
+        border: 1px solid #e1e8ed;
         border-radius: 10px;
-        color: white;
-        text-align: center;
-        margin: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease;
     }
     
-    .quick-action-card:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    .card-container:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     
-    .card-status-unopened { color: #e74c3c; }
-    .card-status-opened { color: #f39c12; }
-    .card-status-new { color: #27ae60; }
-    
-    .wishlist-card { background-color: #3498db; color: white; }
-    .wishlist-magic { background-color: #9b59b6; color: white; }
-    
-    .priority-high { background-color: #e74c3c; color: white; }
-    .priority-medium { background-color: #f39c12; color: white; }
-    .priority-low { background-color: #95a5a6; color: white; }
-    
-    .clickable-link {
-        color: #3498db;
-        text-decoration: none;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    
-    .clickable-link:hover {
-        color: #2980b9;
-        text-decoration: underline;
-    }
-    
-    .stSelectbox > div > div > select {
+    .filter-section {
         background-color: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 8px;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+        border: 1px solid #dee2e6;
+    }
+    
+    .priority-high { 
+        color: #e74c3c; 
+        font-weight: bold;
+    }
+    .priority-medium { 
+        color: #f39c12; 
+        font-weight: bold;
+    }
+    .priority-low { 
+        color: #95a5a6; 
+        font-weight: bold;
+    }
+    
+    .difficulty-bar {
+        background-color: #ecf0f1;
+        border-radius: 10px;
+        height: 20px;
+        overflow: hidden;
+        margin: 5px 0;
+        position: relative;
+    }
+    
+    .difficulty-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #27ae60, #f1c40f, #e74c3c);
+        transition: width 0.5s ease;
     }
     
     .stButton > button {
@@ -164,54 +181,23 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
     
-    .difficulty-bar {
-        background-color: #ecf0f1;
-        border-radius: 10px;
-        height: 20px;
-        overflow: hidden;
-        margin: 5px 0;
-    }
-    
-    .difficulty-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #27ae60, #f1c40f, #e74c3c);
-        transition: width 0.5s ease;
-
-    /* 추가: 테이블 가독성 향상 */
-    .dataframe {
-        font-size: 14px;
-        width: 100% !important;
-    }
-    
-    .dataframe th, .dataframe td {
-        padding: 8px 12px !important;
-        text-align: left !important;
-    }
-    
-    /* 컨테이너 최대 폭 늘리기 */
     .main .block-container {
-        max-width: 1200px;
+        max-width: 1400px;
         padding-left: 2rem;
         padding-right: 2rem;
-    }
-    
-    /* 테이블 스크롤 활성화 */
-    .stMarkdown > div > table {
-        width: 100%;
-        overflow-x: auto;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # 환율 정보 가져오기 함수
-@st.cache_data(ttl=3600)  # 1시간 캐시
+@st.cache_data(ttl=3600)
 def get_exchange_rate():
     try:
         response = requests.get("https://api.exchangerate-api.com/v4/latest/USD")
         data = response.json()
-        return data['rates'].get('KRW', 1300)  # 기본값 1300원
+        return data['rates'].get('KRW', 1300)
     except:
-        return 1300  # API 실패 시 기본값
+        return 1300
 
 # 달러를 원화로 변환하는 함수
 def usd_to_krw(usd_amount):
@@ -240,11 +226,11 @@ def get_status_icon(status):
 # 우선순위 색상
 def get_priority_color(priority):
     if priority >= 4.0:
-        return "🔴"  # 높음
+        return "🔴"
     elif priority >= 2.5:
-        return "🟡"  # 보통
+        return "🟡"
     else:
-        return "⚪"  # 낮음
+        return "⚪"
 
 # 난이도 막대 표시
 def display_difficulty_bar(difficulty):
@@ -264,7 +250,7 @@ def display_difficulty_bar(difficulty):
 def initialize_session_state():
     # 먼저 파일에서 데이터 로드 시도
     if load_data():
-        return  # 데이터 로드 성공하면 초기화 건너뛰기
+        return
     
     # 파일이 없거나 로드 실패 시 기본값으로 초기화
     if 'card_collection' not in st.session_state:
@@ -357,7 +343,6 @@ def add_magic():
         '관련영상': st.session_state.new_magic_video,
         '비고': st.session_state.new_magic_note
     }
-    save_data()
     
     # 새 장르 추가
     if st.session_state.genre_option == "새로 추가":
@@ -374,7 +359,7 @@ def add_magic():
 def make_clickable_link(name, url):
     if pd.isna(url) or url == "":
         return name
-    return f'<a href="{url}" target="_blank" class="clickable-link">{name}</a>'
+    return f'<a href="{url}" target="_blank" style="color: #3498db; text-decoration: none; font-weight: bold;">{name}</a>'
 
 # 메인 앱
 def main():
@@ -455,21 +440,24 @@ def show_enhanced_dashboard():
             </div>
             """, unsafe_allow_html=True)
     
-    # 퀵 액션 버튼들
+    # 퀵 액션 버튼들 - st.switch_page 대신 세션 상태 사용
     st.markdown('<h3 class="section-header">⚡ Quick Actions</h3>', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         if st.button("🃏 카드 추가", key="quick_add_card", use_container_width=True):
-            st.switch_page("🃏 Card Collection")
+            st.session_state.current_page = "🃏 Card Collection"
+            st.rerun()
     
     with col2:
         if st.button("💫 위시리스트 추가", key="quick_add_wish", use_container_width=True):
-            st.switch_page("💫 Wishlist")
+            st.session_state.current_page = "💫 Wishlist"
+            st.rerun()
     
     with col3:
         if st.button("🎩 마술 추가", key="quick_add_magic", use_container_width=True):
-            st.switch_page("🎩 Magic Tricks")
+            st.session_state.current_page = "🎩 Magic Tricks"
+            st.rerun()
     
     with col4:
         if st.button("📊 통계 새로고침", key="refresh_stats", use_container_width=True):
@@ -479,8 +467,7 @@ def show_enhanced_dashboard():
     col1, col2 = st.columns(2)
     
     with col1:
-        # 컬렉션 통계
-        st.markdown('<h3 class="section-header">📈 컬렉션 통계</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="sub-section-header">📈 컬렉션 통계</h3>', unsafe_allow_html=True)
         
         if not st.session_state.card_collection.empty:
             df = st.session_state.card_collection.copy()
@@ -502,7 +489,7 @@ def show_enhanced_dashboard():
             # 투자 성과
             if '구매가격($)' in df.columns and '현재가격($)' in df.columns:
                 total_invested = df['구매가격($)'].sum()
-                total_current = df['현재가격($)'].sum() if '현재가격($)' in df.columns else total_invested
+                total_current = df['현재가격($)'].sum()
                 if total_invested > 0:
                     roi = ((total_current - total_invested) / total_invested) * 100
                     roi_color = "🟢" if roi >= 0 else "🔴"
@@ -511,8 +498,7 @@ def show_enhanced_dashboard():
             st.info("📝 아직 카드가 없습니다. 첫 카드를 추가해보세요!")
     
     with col2:
-        # 최근 활동 및 우선순위
-        st.markdown('<h3 class="section-header">🎯 중요한 정보</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="sub-section-header">🎯 중요한 정보</h3>', unsafe_allow_html=True)
         
         # 높은 우선순위 위시리스트
         if not st.session_state.wishlist.empty:
@@ -539,7 +525,7 @@ def show_enhanced_dashboard():
             st.write(f"**💫 위시리스트 총 가치:** ${total_wishlist_value:.2f} (₩{total_wishlist_krw:,.0f})")
     
     # 환율 정보 및 유용한 팁
-    st.markdown('<h3 class="section-header">💡 유용한 정보</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="sub-section-header">💡 유용한 정보</h3>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -564,7 +550,8 @@ def show_card_collection():
     st.markdown('<h2 class="section-header">🃏 Card Collection Management</h2>', unsafe_allow_html=True)
     
     # 카드 추가 섹션
-    with st.expander("➕ 새 카드 추가", expanded=False):
+    st.markdown('<h3 class="sub-section-header">➕ 새 카드 추가</h3>', unsafe_allow_html=True)
+    with st.expander("카드 정보 입력", expanded=False):
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -573,7 +560,6 @@ def show_card_collection():
             st.number_input("현재가격($)", min_value=0.0, step=0.01, key="new_card_current_price")
         
         with col2:
-            # 제조사 선택 방식
             st.radio("제조사 선택", ["기존 선택", "새로 추가"], key="manufacturer_option")
             
             if st.session_state.manufacturer_option == "기존 선택":
@@ -598,24 +584,27 @@ def show_card_collection():
             else:
                 st.error("❌ 카드명을 입력해주세요!")
     
-    # 필터링 및 검색
-    st.markdown("### 🔍 Filter & Search")
-    col1, col2, col3, col4 = st.columns(4)
+    # 필터링 및 검색 섹션
+    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            search_term = st.text_input("🔎 카드명 검색")
+        
+        with col2:
+            manufacturer_filter = st.selectbox("제조사 필터", 
+                                             ["전체"] + st.session_state.manufacturers)
+        
+        with col3:
+            status_filter = st.selectbox("개봉상태 필터", ["전체", "미개봉", "개봉", "새 덱"])
+        
+        with col4:
+            sort_by = st.selectbox("정렬 기준", ["카드명", "구매가격($)", "현재가격($)", "디자인별점"])
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col1:
-        search_term = st.text_input("🔎 카드명 검색")
-    
-    with col2:
-        manufacturer_filter = st.selectbox("제조사 필터", 
-                                         ["전체"] + st.session_state.manufacturers)
-    
-    with col3:
-        status_filter = st.selectbox("개봉상태 필터", ["전체", "미개봉", "개봉", "새 덱"])
-    
-    with col4:
-        sort_by = st.selectbox("정렬 기준", ["카드명", "구매가격($)", "현재가격($)", "디자인별점"])
-    
-    # 데이터 필터링 및 정렬
+# 데이터 필터링 및 정렬
     df = st.session_state.card_collection.copy()
     
     if not df.empty:
@@ -632,253 +621,203 @@ def show_card_collection():
             df = df[df['개봉여부'] == status_filter]
         
         # 정렬
-        df = df.sort_values(by=sort_by)
-        
-        # 표시용 데이터 준비
-        df_display = df.copy()
-        if '구매가격($)' in df.columns and '현재가격($)' in df.columns:
-            df_display['상승률(%)'] = ((df['현재가격($)'] - df['구매가격($)']) / df['구매가격($)'] * 100).round(2)
-        df_display['구매가격(₩)'] = df['구매가격($)'].apply(lambda x: f"{usd_to_krw(x):,.0f}")
-        df_display['현재가격(₩)'] = df['현재가격($)'].apply(lambda x: f"{usd_to_krw(x):,.0f}")
-        df_display['별점표시'] = df['디자인별점'].apply(display_stars)
-        df_display['상태아이콘'] = df['개봉여부'].apply(get_status_icon)
-        
-        # 클릭 가능한 카드명 생성
-        df_display['카드명_링크'] = df_display.apply(
-            lambda row: make_clickable_link(row['카드명'], row.get('판매사이트', '')), axis=1
-        )
-        
-        # 테이블 표시
-        st.markdown("### 📋 Card Collection")
-        st.markdown(df_display[['카드명_링크', '상태아이콘', '구매가격($)', '구매가격(₩)', 
-                               '현재가격($)', '현재가격(₩)', '상승률(%)', '제조사', '단종여부', '별점표시']].to_html(escape=False), 
-                   unsafe_allow_html=True)
-        
-    # 편집 및 삭제 기능
-    st.markdown("### ✏️ Edit & Delete")
+        if not df.empty:
+            df = df.sort_values(sort_by, ascending=True)
+    
+    # 카드 컬렉션 표시
+    st.markdown('<h3 class="sub-section-header">📚 Card Collection</h3>', unsafe_allow_html=True)
+    
     if not df.empty:
-        selected_card = st.selectbox("편집할 카드 선택", df['카드명'].tolist())
+        # 통계 요약
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("총 카드 수", len(df))
+        with col2:
+            total_purchase = df['구매가격($)'].sum()
+            st.metric("총 구매금액", f"${total_purchase:.2f}")
+        with col3:
+            total_current = df['현재가격($)'].sum()
+            st.metric("현재 총 가치", f"${total_current:.2f}")
+        with col4:
+            if total_purchase > 0:
+                roi = ((total_current - total_purchase) / total_purchase) * 100
+                st.metric("수익률", f"{roi:.1f}%", delta=f"{roi:.1f}%")
         
-        # 편집 모드
-        with st.expander(f"✏️ '{selected_card}' 카드 편집", expanded=False):
-            card_idx = st.session_state.card_collection[st.session_state.card_collection['카드명'] == selected_card].index[0]
-            current_card = st.session_state.card_collection.loc[card_idx]
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                edit_name = st.text_input("카드명", value=current_card['카드명'], key="edit_card_name")
-                edit_purchase = st.number_input("구매가격($)", min_value=0.0, step=0.01, value=float(current_card['구매가격($)']), key="edit_purchase_price")
-                edit_current = st.number_input("현재가격($)", min_value=0.0, step=0.01, value=float(current_card['현재가격($)']), key="edit_current_price")
-            
-            with col2:
-                edit_manufacturer = st.selectbox("제조사", st.session_state.manufacturers, 
-                                               index=st.session_state.manufacturers.index(current_card['제조사']) if current_card['제조사'] in st.session_state.manufacturers else 0,
-                                               key="edit_manufacturer")
-                edit_discontinued = st.selectbox("단종여부", ["단종", "현재판매"], 
-                                               index=0 if current_card['단종여부'] == "단종" else 1,
-                                               key="edit_discontinued")
-                edit_status = st.selectbox("개봉여부", ["미개봉", "개봉", "새 덱"],
-                                         index=["미개봉", "개봉", "새 덱"].index(current_card['개봉여부']) if current_card['개봉여부'] in ["미개봉", "개봉", "새 덱"] else 0,
-                                         key="edit_status")
-            
-            with col3:
-                edit_site = st.text_input("판매사이트 URL", value=str(current_card['판매사이트']) if pd.notna(current_card['판매사이트']) else "", key="edit_site")
-                edit_rating = st.slider("디자인별점", 1.0, 5.0, float(current_card['디자인별점']), 0.5, key="edit_rating")
-                edit_finish = st.selectbox("피니시", ["Standard", "Air Cushion", "Linen", "Smooth", "Embossed"],
-                                         index=["Standard", "Air Cushion", "Linen", "Smooth", "Embossed"].index(current_card['피니시']) if current_card['피니시'] in ["Standard", "Air Cushion", "Linen", "Smooth", "Embossed"] else 0,
-                                         key="edit_finish")
-            
-            if st.button("💾 수정 저장", key="save_edit_card"):
-                st.session_state.card_collection.loc[card_idx] = {
-                    '카드명': edit_name,
-                    '구매가격($)': edit_purchase,
-                    '현재가격($)': edit_current,
-                    '제조사': edit_manufacturer,
-                    '단종여부': edit_discontinued,
-                    '개봉여부': edit_status,
-                    '판매사이트': edit_site,
-                    '디자인별점': edit_rating,
-                    '피니시': edit_finish,
-                    '디자인스타일': current_card['디자인스타일']
-                }
-                save_data()
-                st.success("✅ 카드 정보가 수정되었습니다!")
-                st.rerun()
-        
-            col1, col2 = st.columns(2)
-    # ... 기존 삭제 코드 유지 ...
-            with col1:
-                if st.button("🗑️ 선택한 카드 삭제", type="secondary"):
-                    st.session_state.card_collection = st.session_state.card_collection[
-                        st.session_state.card_collection['카드명'] != selected_card
-                    ]
-                    save_data()
-                    st.success(f"✅ '{selected_card}' 카드가 삭제되었습니다!")
-                    st.rerun()
-                    
-            with col2:
-                if st.button("🔄 전체 데이터 초기화"):
-                    st.warning("⚠️ 이 작업은 되돌릴 수 없습니다!")
-                    confirm = st.checkbox("정말로 모든 카드 데이터를 삭제하시겠습니까?")
-                    if confirm and st.button("⚠️ 확인 - 전체 삭제"):
-                        st.session_state.card_collection = pd.DataFrame(columns=[
-                            '카드명', '구매가격($)', '현재가격($)', '제조사', '단종여부', '개봉여부',
-                            '판매사이트', '디자인별점', '피니시', '디자인스타일'
-                        ])
-                        st.success("✅ 모든 카드 데이터가 초기화되었습니다!")
+        # 카드 목록 표시
+        for idx, row in df.iterrows():
+            with st.container():
+                st.markdown('<div class="card-container">', unsafe_allow_html=True)
+                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+                
+                with col1:
+                    status_icon = get_status_icon(row['개봉여부'])
+                    st.markdown(f"**{status_icon} {row['카드명']}**")
+                    st.caption(f"🏭 {row['제조사']} | {row['피니시']} | {row['디자인스타일']}")
+                
+                with col2:
+                    st.write(f"**구매:** ${row['구매가격($)']:.2f}")
+                    st.write(f"**현재:** ${row['현재가격($)']:.2f}")
+                    profit = row['현재가격($)'] - row['구매가격($)']
+                    profit_color = "🟢" if profit >= 0 else "🔴"
+                    st.write(f"**손익:** {profit_color} ${profit:.2f}")
+                
+                with col3:
+                    stars = display_stars(row['디자인별점'])
+                    st.write(f"**별점:** {stars}")
+                    discontinued_icon = "❌" if row['단종여부'] == "단종" else "✅"
+                    st.write(f"**판매상태:** {discontinued_icon} {row['단종여부']}")
+                
+                with col4:
+                    if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
+                        st.markdown(f"[🔗 구매링크]({row['판매사이트']})")
+                    else:
+                        st.write("링크 없음")
+                
+                with col5:
+                    if st.button("🗑️", key=f"delete_card_{idx}", help="카드 삭제"):
+                        st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
+                        save_data()
                         st.rerun()
                 
-        
-        # 데이터 내보내기/가져오기
-        st.markdown("### 📤 Import/Export")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if not st.session_state.card_collection.empty:
-                csv = st.session_state.card_collection.to_csv(index=False, encoding='utf-8')
-                st.download_button(
-                    label="📥 CSV로 내보내기",
-                    data=csv,
-                    file_name=f"card_collection_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
-        
-        with col2:
-            uploaded_file = st.file_uploader("📤 CSV 파일 업로드", type=['csv'])
-            if uploaded_file is not None:
-                try:
-                    new_data = pd.read_csv(uploaded_file)
-                    if st.button("🔄 데이터 가져오기"):
-                        st.session_state.card_collection = new_data
-                        st.success("✅ 데이터가 성공적으로 가져와졌습니다!")
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"❌ 파일 읽기 오류: {str(e)}")
-    
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.info("📝 아직 카드가 없습니다. 첫 카드를 추가해보세요!")
+        st.info("🃏 표시할 카드가 없습니다. 필터를 조정하거나 새 카드를 추가해보세요!")
 
 def show_wishlist():
     st.markdown('<h2 class="section-header">💫 Wishlist Management</h2>', unsafe_allow_html=True)
     
-    # 위시리스트 추가 섹션
-    with st.expander("➕ 새 위시리스트 추가", expanded=False):
+    # 위시리스트 아이템 추가 섹션
+    st.markdown('<h3 class="sub-section-header">➕ 새 아이템 추가</h3>', unsafe_allow_html=True)
+    with st.expander("위시리스트 아이템 입력", expanded=False):
         col1, col2 = st.columns(2)
         
         with col1:
-            st.text_input("이름", key="new_wish_name")
-            st.selectbox("타입", ["카드", "마술도구", "책", "DVD", "기타"], key="new_wish_type")
-            st.number_input("가격($)", min_value=0.0, step=0.01, key="new_wish_price")
+            st.text_input("아이템명", key="new_wish_name")
+            st.selectbox("타입", ["카드", "마술용품", "책", "DVD", "기타"], key="new_wish_type")
+            st.number_input("예상가격($)", min_value=0.0, step=0.01, key="new_wish_price")
         
         with col2:
             st.text_input("판매사이트 URL", key="new_wish_site")
             st.slider("우선순위", 1.0, 5.0, 3.0, 0.5, key="new_wish_priority")
             st.text_area("비고", key="new_wish_note")
         
-        if st.button("위시리스트 추가", type="primary"):
+        if st.button("위시리스트에 추가", type="primary"):
             if st.session_state.new_wish_name:
                 add_card_to_wishlist()
-                st.success("✅ 위시리스트가 성공적으로 추가되었습니다!")
+                st.success("✅ 위시리스트에 성공적으로 추가되었습니다!")
                 st.rerun()
             else:
-                st.error("❌ 이름을 입력해주세요!")
+                st.error("❌ 아이템명을 입력해주세요!")
+    
+    # 위시리스트 필터링
+    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            wish_search = st.text_input("🔎 아이템명 검색", key="wish_search")
+        
+        with col2:
+            type_filter = st.selectbox("타입 필터", ["전체", "카드", "마술용품", "책", "DVD", "기타"])
+        
+        with col3:
+            priority_filter = st.selectbox("우선순위 필터", ["전체", "높음(4+)", "중간(2-4)", "낮음(~2)"])
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 위시리스트 데이터 필터링
+    wish_df = st.session_state.wishlist.copy()
+    
+    if not wish_df.empty:
+        # 검색 필터
+        if wish_search:
+            wish_df = wish_df[wish_df['이름'].str.contains(wish_search, case=False, na=False)]
+        
+        # 타입 필터
+        if type_filter != "전체":
+            wish_df = wish_df[wish_df['타입'] == type_filter]
+        
+        # 우선순위 필터
+        if priority_filter == "높음(4+)":
+            wish_df = wish_df[wish_df['우선순위'] >= 4.0]
+        elif priority_filter == "중간(2-4)":
+            wish_df = wish_df[(wish_df['우선순위'] >= 2.0) & (wish_df['우선순위'] < 4.0)]
+        elif priority_filter == "낮음(~2)":
+            wish_df = wish_df[wish_df['우선순위'] < 2.0]
+        
+        # 우선순위 순으로 정렬
+        wish_df = wish_df.sort_values('우선순위', ascending=False)
     
     # 위시리스트 표시
-    if not st.session_state.wishlist.empty:
-        df = st.session_state.wishlist.copy()
-        
-        # 필터링
-        col1, col2 = st.columns(2)
-        with col1:
-            type_filter = st.selectbox("타입 필터", ["전체"] + df['타입'].unique().tolist())
-        with col2:
-            priority_filter = st.selectbox("우선순위 필터", ["전체", "높음(4-5)", "보통(2-4)", "낮음(1-2)"])
-        
-        # 필터 적용
-        if type_filter != "전체":
-            df = df[df['타입'] == type_filter]
-        
-        if priority_filter == "높음(4-5)":
-            df = df[df['우선순위'] >= 4.0]
-        elif priority_filter == "보통(2-4)":
-            df = df[(df['우선순위'] >= 2.0) & (df['우선순위'] < 4.0)]
-        elif priority_filter == "낮음(1-2)":
-            df = df[df['우선순위'] < 2.0]
-        
-        # 표시용 데이터 준비
-        df_display = df.copy()
-        df_display['가격(₩)'] = df['가격($)'].apply(lambda x: f"{usd_to_krw(x):,.0f}")
-        df_display['우선순위표시'] = df['우선순위'].apply(get_priority_color)
-        df_display['타입아이콘'] = df['타입'].apply(lambda x: {"카드": "🃏", "마술도구": "🎩", "책": "📚", "DVD": "💿", "기타": "📦"}.get(x, "❓"))
-        df_display['이름_링크'] = df_display.apply(
-            lambda row: make_clickable_link(row['이름'], row.get('판매사이트', '')), axis=1
-        )
-        
-        # 우선순위별 정렬
-        df_display = df_display.sort_values('우선순위', ascending=False)
-        
-        st.markdown("### 💫 Wishlist")
-        st.markdown(df_display[['이름_링크', '타입아이콘', '가격($)', '가격(₩)', '우선순위표시', '비고']].to_html(escape=False), 
-                   unsafe_allow_html=True)
-        # 편집 기능 추가
-        with st.expander(f"✏️ '{selected_wish}' 위시리스트 편집", expanded=False):
-            wish_idx = st.session_state.wishlist[st.session_state.wishlist['이름'] == selected_wish].index[0]
-            current_wish = st.session_state.wishlist.loc[wish_idx]
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                edit_wish_name = st.text_input("이름", value=current_wish['이름'], key="edit_wish_name")
-                edit_wish_type = st.selectbox("타입", ["카드", "마술도구", "책", "DVD", "기타"],
-                                            index=["카드", "마술도구", "책", "DVD", "기타"].index(current_wish['타입']) if current_wish['타입'] in ["카드", "마술도구", "책", "DVD", "기타"] else 0,
-                                            key="edit_wish_type")
-                edit_wish_price = st.number_input("가격($)", min_value=0.0, step=0.01, value=float(current_wish['가격($)']), key="edit_wish_price")
-            
-            with col2:
-                edit_wish_site = st.text_input("판매사이트 URL", value=str(current_wish['판매사이트']) if pd.notna(current_wish['판매사이트']) else "", key="edit_wish_site")
-                edit_wish_priority = st.slider("우선순위", 1.0, 5.0, float(current_wish['우선순위']), 0.5, key="edit_wish_priority")
-                edit_wish_note = st.text_area("비고", value=str(current_wish['비고']) if pd.notna(current_wish['비고']) else "", key="edit_wish_note")
-            
-            if st.button("💾 위시리스트 수정 저장", key="save_edit_wish"):
-                st.session_state.wishlist.loc[wish_idx] = {
-                    '이름': edit_wish_name,
-                    '타입': edit_wish_type,
-                    '가격($)': edit_wish_price,
-                    '판매사이트': edit_wish_site,
-                    '우선순위': edit_wish_priority,
-                    '비고': edit_wish_note
-                }
-                save_data()
-                st.success("✅ 위시리스트가 수정되었습니다!")
-                st.rerun()
-        
-        selected_wish = st.selectbox("편집/삭제할 위시리스트 선택", df['이름'].tolist())      
-        
-        # 삭제 기능
-        selected_wish = st.selectbox("삭제할 위시리스트 선택", df['이름'].tolist())
-        if st.button("🗑️ 위시리스트 삭제"):
-            st.session_state.wishlist = st.session_state.wishlist[
-                st.session_state.wishlist['이름'] != selected_wish
-            ]
-            save_data()
-            st.success(f"✅ '{selected_wish}' 위시리스트가 삭제되었습니다!")
-            st.rerun()
+    st.markdown('<h3 class="sub-section-header">🛍️ Wishlist Items</h3>', unsafe_allow_html=True)
     
+    if not wish_df.empty:
+        # 위시리스트 통계
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("총 아이템 수", len(wish_df))
+        with col2:
+            total_wishlist_value = wish_df['가격($)'].sum()
+            st.metric("총 예상금액", f"${total_wishlist_value:.2f}")
+        with col3:
+            avg_priority = wish_df['우선순위'].mean()
+            st.metric("평균 우선순위", f"{avg_priority:.1f}/5.0")
+        with col4:
+            high_priority_count = len(wish_df[wish_df['우선순위'] >= 4.0])
+            st.metric("높은 우선순위", f"{high_priority_count}개")
+        
+        # 위시리스트 아이템 표시
+        for idx, row in wish_df.iterrows():
+            with st.container():
+                st.markdown('<div class="card-container">', unsafe_allow_html=True)
+                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+                
+                with col1:
+                    priority_icon = get_priority_color(row['우선순위'])
+                    type_icon = "🃏" if row['타입'] == "카드" else "🎩" if row['타입'] == "마술용품" else "📚" if row['타입'] == "책" else "💿" if row['타입'] == "DVD" else "📦"
+                    st.markdown(f"**{priority_icon} {type_icon} {row['이름']}**")
+                    st.caption(f"타입: {row['타입']}")
+                
+                with col2:
+                    st.write(f"**가격:** ${row['가격($)']:.2f}")
+                    krw_price = usd_to_krw(row['가격($)'])
+                    st.caption(f"₩{krw_price:,.0f}")
+                
+                with col3:
+                    priority_stars = "⭐" * int(row['우선순위'])
+                    st.write(f"**우선순위:** {priority_stars}")
+                    st.write(f"**점수:** {row['우선순위']:.1f}/5.0")
+                
+                with col4:
+                    if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
+                        st.markdown(f"[🔗 구매링크]({row['판매사이트']})")
+                    else:
+                        st.write("링크 없음")
+                    
+                    if pd.notna(row['비고']) and row['비고'] != "":
+                        st.caption(f"💬 {row['비고']}")
+                
+                with col5:
+                    if st.button("🗑️", key=f"delete_wish_{idx}", help="아이템 삭제"):
+                        st.session_state.wishlist = st.session_state.wishlist.drop(idx).reset_index(drop=True)
+                        save_data()
+                        st.rerun()
+                
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.info("📝 아직 위시리스트가 없습니다. 첫 위시리스트를 추가해보세요!")
+        st.info("💫 표시할 위시리스트 아이템이 없습니다. 필터를 조정하거나 새 아이템을 추가해보세요!")
 
 def show_magic_tricks():
     st.markdown('<h2 class="section-header">🎩 Magic Tricks Management</h2>', unsafe_allow_html=True)
     
     # 마술 추가 섹션
-    with st.expander("➕ 새 마술 추가", expanded=False):
+    st.markdown('<h3 class="sub-section-header">➕ 새 마술 추가</h3>', unsafe_allow_html=True)
+    with st.expander("마술 정보 입력", expanded=False):
         col1, col2 = st.columns(2)
         
         with col1:
             st.text_input("마술명", key="new_magic_name")
             
-            # 장르 선택 방식
             st.radio("장르 선택", ["기존 선택", "새로 추가"], key="genre_option")
             
             if st.session_state.genre_option == "기존 선택":
@@ -886,11 +825,11 @@ def show_magic_tricks():
             else:
                 st.text_input("새 장르명", key="new_genre_input")
             
-            st.slider("신기함정도", 1.0, 5.0, 3.0, 0.5, key="new_magic_rating")
+            st.slider("신기함 정도", 1.0, 5.0, 3.0, 0.5, key="new_magic_rating")
         
         with col2:
             st.slider("난이도", 1.0, 5.0, 3.0, 0.5, key="new_magic_difficulty")
-            st.text_input("관련영상 URL", key="new_magic_video")
+            st.text_input("관련 영상 URL", key="new_magic_video")
             st.text_area("비고", key="new_magic_note")
         
         if st.button("마술 추가", type="primary"):
@@ -901,110 +840,113 @@ def show_magic_tricks():
             else:
                 st.error("❌ 마술명을 입력해주세요!")
     
-    # 마술 목록 표시
-    if not st.session_state.magic_list.empty:
-        df = st.session_state.magic_list.copy()
+    # 마술 필터링
+    st.markdown('<h3 class="sub-section-header">🔍 Filter & Search</h3>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        col1, col2, col3, col4 = st.columns(4)
         
-        # 필터링
-        col1, col2 = st.columns(2)
         with col1:
-            genre_filter = st.selectbox("장르 필터", ["전체"] + st.session_state.magic_genres)
+            magic_search = st.text_input("🔎 마술명 검색", key="magic_search")
+        
         with col2:
-            difficulty_filter = st.selectbox("난이도 필터", ["전체", "쉬움(1-2)", "보통(2-4)", "어려움(4-5)"])
+            genre_filter = st.selectbox("장르 필터", ["전체"] + st.session_state.magic_genres)
         
-        # 필터 적용
+        with col3:
+            difficulty_filter = st.selectbox("난이도 필터", ["전체", "쉬움(~2)", "보통(2-4)", "어려움(4+)"])
+        
+        with col4:
+            rating_filter = st.selectbox("신기함 필터", ["전체", "낮음(~2)", "보통(2-4)", "높음(4+)"])
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 마술 데이터 필터링
+    magic_df = st.session_state.magic_list.copy()
+    
+    if not magic_df.empty:
+        # 검색 필터
+        if magic_search:
+            magic_df = magic_df[magic_df['마술명'].str.contains(magic_search, case=False, na=False)]
+        
+        # 장르 필터
         if genre_filter != "전체":
-            df = df[df['장르'] == genre_filter]
+            magic_df = magic_df[magic_df['장르'] == genre_filter]
         
-        if difficulty_filter == "쉬움(1-2)":
-            df = df[df['난이도'] <= 2.0]
+        # 난이도 필터
+        if difficulty_filter == "쉬움(~2)":
+            magic_df = magic_df[magic_df['난이도'] <= 2.0]
         elif difficulty_filter == "보통(2-4)":
-            df = df[(df['난이도'] > 2.0) & (df['난이도'] <= 4.0)]
-        elif difficulty_filter == "어려움(4-5)":
-            df = df[df['난이도'] > 4.0]
+            magic_df = magic_df[(magic_df['난이도'] > 2.0) & (magic_df['난이도'] <= 4.0)]
+        elif difficulty_filter == "어려움(4+)":
+            magic_df = magic_df[magic_df['난이도'] > 4.0]
         
-        # 표시용 데이터 준비
-        df_display = df.copy()
-        df_display['별점표시'] = df['신기함정도'].apply(display_stars)
-        df_display['난이도막대'] = df['난이도'].apply(display_difficulty_bar)
-        df_display['마술명_링크'] = df_display.apply(
-            lambda row: make_clickable_link(row['마술명'], row.get('관련영상', '')), axis=1
-        )
+        # 신기함 필터
+        if rating_filter == "낮음(~2)":
+            magic_df = magic_df[magic_df['신기함정도'] <= 2.0]
+        elif rating_filter == "보통(2-4)":
+            magic_df = magic_df[(magic_df['신기함정도'] > 2.0) & (magic_df['신기함정도'] <= 4.0)]
+        elif rating_filter == "높음(4+)":
+            magic_df = magic_df[magic_df['신기함정도'] > 4.0]
         
-        # 신기함정도별 정렬
-        df_display = df_display.sort_values('신기함정도', ascending=False)
+        # 신기함 정도 순으로 정렬
+        magic_df = magic_df.sort_values('신기함정도', ascending=False)
+    
+    # 마술 목록 표시
+    st.markdown('<h3 class="sub-section-header">🎭 Magic Tricks Collection</h3>', unsafe_allow_html=True)
+    
+    if not magic_df.empty:
+        # 마술 통계
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("총 마술 수", len(magic_df))
+        with col2:
+            avg_rating = magic_df['신기함정도'].mean()
+            st.metric("평균 신기함", f"{avg_rating:.1f}/5.0")
+        with col3:
+            avg_difficulty = magic_df['난이도'].mean()
+            st.metric("평균 난이도", f"{avg_difficulty:.1f}/5.0")
+        with col4:
+            high_rating_count = len(magic_df[magic_df['신기함정도'] >= 4.0])
+            st.metric("고평점 마술", f"{high_rating_count}개")
         
-        st.markdown("### 🎩 Magic Tricks List")
-        
-        # 각 마술을 카드 형태로 표시
-        for idx, row in df_display.iterrows():
+        # 마술 아이템 표시
+        for idx, row in magic_df.iterrows():
             with st.container():
-                col1, col2, col3 = st.columns([3, 1, 1])
+                st.markdown('<div class="card-container">', unsafe_allow_html=True)
+                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
                 
                 with col1:
-                    if row.get('관련영상', ''):
-                        st.markdown(f"**🎩 [{row['마술명']}]({row['관련영상']})**")
-                    else:
-                        st.markdown(f"**🎩 {row['마술명']}**")
-                    st.write(f"📂 장르: {row['장르']}")
-                    if row.get('비고', ''):
-                        st.write(f"📝 {row['비고']}")
+                    genre_icon = "🃏" if "카드" in row['장르'] else "🪙" if "동전" in row['장르'] else "🧠" if "멘탈" in row['장르'] else "🎭"
+                    st.markdown(f"**{genre_icon} {row['마술명']}**")
+                    st.caption(f"장르: {row['장르']}")
                 
                 with col2:
-                    st.write("⭐ 신기함")
-                    st.write(row['별점표시'])
+                    amazement_stars = display_stars(row['신기함정도'])
+                    st.write(f"**신기함:** {amazement_stars}")
+                    st.caption(f"점수: {row['신기함정도']:.1f}/5.0")
                 
                 with col3:
-                    st.write("🎯 난이도")
-                    st.markdown(row['난이도막대'], unsafe_allow_html=True)
-                    st.write(f"{row['난이도']:.1f}/5.0")
+                    difficulty_color = "#27ae60" if row['난이도'] <= 2 else "#f1c40f" if row['난이도'] <= 3.5 else "#e74c3c"
+                    st.write(f"**난이도:** {row['난이도']:.1f}/5.0")
+                    st.markdown(display_difficulty_bar(row['난이도']), unsafe_allow_html=True)
                 
-                st.divider()
-        # 편집 기능 추가
-        with st.expander(f"✏️ '{selected_magic}' 마술 편집", expanded=False):
-            magic_idx = st.session_state.magic_list[st.session_state.magic_list['마술명'] == selected_magic].index[0]
-            current_magic = st.session_state.magic_list.loc[magic_idx]
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                edit_magic_name = st.text_input("마술명", value=current_magic['마술명'], key="edit_magic_name")
-                edit_magic_genre = st.selectbox("장르", st.session_state.magic_genres,
-                                              index=st.session_state.magic_genres.index(current_magic['장르']) if current_magic['장르'] in st.session_state.magic_genres else 0,
-                                              key="edit_magic_genre")
-                edit_magic_rating = st.slider("신기함정도", 1.0, 5.0, float(current_magic['신기함정도']), 0.5, key="edit_magic_rating")
-            
-            with col2:
-                edit_magic_difficulty = st.slider("난이도", 1.0, 5.0, float(current_magic['난이도']), 0.5, key="edit_magic_difficulty")
-                edit_magic_video = st.text_input("관련영상 URL", value=str(current_magic['관련영상']) if pd.notna(current_magic['관련영상']) else "", key="edit_magic_video")
-                edit_magic_note = st.text_area("비고", value=str(current_magic['비고']) if pd.notna(current_magic['비고']) else "", key="edit_magic_note")
-            
-            if st.button("💾 마술 수정 저장", key="save_edit_magic"):
-                st.session_state.magic_list.loc[magic_idx] = {
-                    '마술명': edit_magic_name,
-                    '장르': edit_magic_genre,
-                    '신기함정도': edit_magic_rating,
-                    '난이도': edit_magic_difficulty,
-                    '관련영상': edit_magic_video,
-                    '비고': edit_magic_note
-                }
-                save_data()
-                st.success("✅ 마술 정보가 수정되었습니다!")
-                st.rerun()
-        
-        selected_magic = st.selectbox("편집/삭제할 마술 선택", df['마술명'].tolist())
-        # 삭제 기능
-        selected_magic = st.selectbox("삭제할 마술 선택", df['마술명'].tolist())
-        if st.button("🗑️ 마술 삭제"):
-            st.session_state.magic_list = st.session_state.magic_list[
-                st.session_state.magic_list['마술명'] != selected_magic
-            ]
-            save_data()
-            st.success(f"✅ '{selected_magic}' 마술이 삭제되었습니다!")
-            st.rerun()
-    
+                with col4:
+                    if pd.notna(row['관련영상']) and row['관련영상'] != "":
+                        st.markdown(f"[🎥 영상보기]({row['관련영상']})")
+                    else:
+                        st.write("영상 없음")
+                    
+                    if pd.notna(row['비고']) and row['비고'] != "":
+                        st.caption(f"💬 {row['비고']}")
+                
+                with col5:
+                    if st.button("🗑️", key=f"delete_magic_{idx}", help="마술 삭제"):
+                        st.session_state.magic_list = st.session_state.magic_list.drop(idx).reset_index(drop=True)
+                        save_data()
+                        st.rerun()
+                
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.info("📝 아직 마술이 없습니다. 첫 마술을 추가해보세요!")
+        st.info("🎩 표시할 마술이 없습니다. 필터를 조정하거나 새 마술을 추가해보세요!")
 
 # 앱 실행
 if __name__ == "__main__":
