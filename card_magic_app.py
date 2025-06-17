@@ -706,7 +706,7 @@ def show_card_collection():
                 st.success("✅ 카드 정보가 수정되었습니다!")
                 st.rerun()
         
-        col1, col2 = st.columns(2)
+            col1, col2 = st.columns(2)
     # ... 기존 삭제 코드 유지 ...
             with col1:
                 if st.button("🗑️ 선택한 카드 삭제", type="secondary"):
