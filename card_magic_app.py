@@ -699,11 +699,13 @@ def show_card_collection():
         # 카드 목록 표시 (개선된 버전)
         for idx, row in df.iterrows():
             # 전체 카드를 감싸는 컨테이너
-            st.markdown('<div class="card-container">', unsafe_allow_html=True)
-            
             # 컬럼 생성
+            st.markdown("### 📋 카드 정보")
+            st.markdown("### 💰 가격 정보")
+            st.markdown("### ⭐ 평가 정보")
+            st.markdown("### 🔗 구매 링크")
+            st.markdown("### 🛠️ 관리")
             col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
-            
             with col1:
                 st.markdown("### 📋 카드 정보")
                 status_icon = get_status_icon(row['개봉여부'])
@@ -711,7 +713,6 @@ def show_card_collection():
                 st.caption(f"🏭 {row['제조사']} | {row['피니시']} | {row['디자인스타일']}")
             
             with col2:
-                st.markdown("### 💰 가격 정보")
                 st.write(f"**구매:** ${row['구매가격($)']:.2f}")
                 st.write(f"**현재:** ${row['현재가격($)']:.2f}")
                 profit = row['현재가격($)'] - row['구매가격($)']
@@ -719,21 +720,18 @@ def show_card_collection():
                 st.write(f"**손익:** {profit_color} ${profit:.2f}")
             
             with col3:
-                st.markdown("### ⭐ 평가 정보")
                 stars = display_stars(row['디자인별점'])
                 st.write(f"**별점:** {stars}")
                 discontinued_icon = "❌" if row['단종여부'] == "단종" else "✅"
                 st.write(f"**판매상태:** {discontinued_icon} {row['단종여부']}")
             
             with col4:
-                st.markdown("### 🔗 구매 링크")
                 if pd.notna(row['판매사이트']) and row['판매사이트'] != "":
                     st.markdown(f"[🛒 구매하기]({row['판매사이트']})")
                 else:
                     st.write("링크 없음")
             
             with col5:
-                st.markdown("### 🛠️ 관리")
                 if st.button("🗑️ 삭제", key=f"delete_card_{idx}", help="카드 삭제"):
                     st.session_state.card_collection = st.session_state.card_collection.drop(idx).reset_index(drop=True)
                     save_data()
