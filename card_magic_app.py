@@ -7,10 +7,50 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pickle
 import os
+import io
 
 # 데이터 파일 경로
 DATA_FILE = "card_magic_data.pkl"
 
+# 데이터 백업 함수
+def create_backup():
+    backup_data = {
+        'timestamp': datetime.now().isoformat(),
+        'card_collection': st.session_state.card_collection.to_dict('records') if not st.session_state.card_collection.empty else [],
+        'wishlist': st.session_state.wishlist.to_dict('records') if not st.session_state.wishlist.empty else [],
+        'magic_list': st.session_state.magic_list.to_dict('records') if not st.session_state.magic_list.empty else [],
+        'manufacturers': st.session_state.manufacturers,
+        'magic_genres': st.session_state.magic_genres
+    }
+    return json.dumps(backup_data, ensure_ascii=False, indent=2)
+
+# 백업 파일 복원 함수
+def restore_from_backup(uploaded_file):
+    try:
+        backup_data = json.load(uploaded_file)
+        
+        # 데이터 복원
+        if 'card_collection' in backup_data:
+            st.session_state.card_collection = pd.DataFrame(backup_data['card_collection'])
+        
+        if 'wishlist' in backup_data:
+            st.session_state.wishlist = pd.DataFrame(backup_data['wishlist'])
+        
+        if 'magic_list' in backup_data:
+            st.session_state.magic_list = pd.DataFrame(backup_data['magic_list'])
+        
+        if 'manufacturers' in backup_data:
+            st.session_state.manufacturers = backup_data['manufacturers']
+        
+        if 'magic_genres' in backup_data:
+            st.session_state.magic_genres = backup_data['magic_genres']
+        
+        # 데이터 저장
+        save_data()
+        return True, backup_data.get('timestamp', '알 수 없음')
+    except Exception as e:
+        return False, str(e)
+        
 # 데이터 저장 함수
 def save_data():
     """모든 세션 데이터를 파일에 저장"""
@@ -438,6 +478,38 @@ def main():
     elif page == "🎩 Magic Tricks":
         show_magic_tricks()
 
+    # 사이드바 네비게이션 부분 아래에 추가
+    st.sidebar.markdown("---")
+    st.sidebar.markdown('<h3 class="sub-section-header">💾 데이터 백업</h3>', unsafe_allow_html=True)
+    
+    # 백업 다운로드
+    backup_json = create_backup()
+    backup_filename = f"card_magic_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    
+    st.sidebar.download_button(
+        label="📥 백업 다운로드",
+        data=backup_json,
+        file_name=backup_filename,
+        mime="application/json",
+        help="모든 데이터를 JSON 파일로 백업합니다"
+    )
+    
+    # 백업 복원
+    uploaded_backup = st.sidebar.file_uploader(
+        "📤 백업 복원",
+        type=['json'],
+        help="백업 파일을 업로드하여 데이터를 복원합니다"
+    )
+    
+    if uploaded_backup is not None:
+        if st.sidebar.button("🔄 복원 실행", type="primary"):
+            success, message = restore_from_backup(uploaded_backup)
+            if success:
+                st.sidebar.success(f"✅ 백업 복원 완료!\n백업 시간: {message}")
+                st.rerun()
+            else:
+                st.sidebar.error(f"❌ 복원 실패: {message}")
+
 def show_enhanced_dashboard():
     st.markdown('<h2 class="section-header">📊 Enhanced Dashboard</h2>', unsafe_allow_html=True)
     
@@ -599,6 +671,25 @@ def show_enhanced_dashboard():
             st.info(f"🎯 **평균 마술 난이도**\n{avg_difficulty:.1f}/5.0")
         else:
             st.info("🎯 **평균 마술 난이도**\n데이터 없음")
+
+    # 유용한 정보 섹션 아래에 추가
+    st.markdown('<h3 class="sub-section-header">🛡️ 데이터 보안</h3>', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        total_records = len(st.session_state.card_collection) + len(st.session_state.wishlist) + len(st.session_state.magic_list)
+        st.info(f"📊 **총 저장된 레코드**\n{total_records}개")
+    
+    with col2:
+        if st.button("💾 즉시 백업", help="현재 데이터를 즉시 백업합니다"):
+            backup_json = create_backup()
+            backup_filename = f"emergency_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            st.download_button(
+                label="📥 백업 파일 다운로드",
+                data=backup_json,
+                file_name=backup_filename,
+                mime="application/json"
+            )
 
 def show_card_collection():
     st.markdown('<h2 class="section-header">🃏 Card Collection Management</h2>', unsafe_allow_html=True)
